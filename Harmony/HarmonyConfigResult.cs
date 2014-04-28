@@ -1,17 +1,32 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
 
 namespace Harmony
 {
-    public class HarmonyConfigResult
+    /// <summary>
+    /// Power and Input states to fix a device
+    /// </summary>
+    [DataContract]
+    public class FixItCommand
     {
-        public List<Activity> activity { get; set; }
-        public List<Device> device { get; set; }
-        public List<object> sequence { get; set; }
-        public Content content { get; set; }
-        public Global global { get; set; }
+        /// <summary>
+        /// Device ID for fix settings
+        /// </summary>
+        [DataMember]
+        public string id { get; set; }
+        [DataMember]
+        public bool isRelativePower { get; set; }
+        [DataMember]
+        public bool isManualPower { get; set; }
+        [DataMember]
+        public string Power { get; set; }
+        [DataMember]
+        public string Input { get; set; }
     }
 
-    public class Activity
+    public class Activity : IComparable<Activity>
     {
         public string suggestedDisplay { get; set; }
         public string label { get; set; }
@@ -21,27 +36,40 @@ namespace Harmony
         public List<object> sequences { get; set; }
         public int activityOrder { get; set; }
         public bool isTuningDefault { get; set; }
-        public Fixit fixit { get; set; }
+        public Dictionary<string, FixItCommand> fixit { get; set; }
         public string type { get; set; }
         public string icon { get; set; }
         public string baseImageUri { get; set; }
+
+        public int CompareTo(Activity other)
+        {
+            return String.Compare(label, other.label, StringComparison.CurrentCultureIgnoreCase);
+        }
     }
 
-    public class Device
+    public class Device : IComparable<Device>
     {
-        public string type { get; set; }
+        public int Transport { get; set; }
+        public string suggestedDisplay { get; set; }
         public string deviceTypeDisplayName { get; set; }
         public string label { get; set; }
         public string id { get; set; }
-        public int Transport { get; set; }
+        public List<int> Capabilities { get; set; }
+        public string type { get; set; }
+        public int DongleRFID { get; set; }
         public List<object> controlGroup { get; set; }
         public int ControlPort { get; set; }
-        public string suggestedDisplay { get; set; }
+        public bool IsKeyboardAssociated { get; set; }
         public string model { get; set; }
         public string deviceProfileUri { get; set; }
         public string manufacturer { get; set; }
         public string icon { get; set; }
         public string isManualPower { get; set; }
+
+        public int CompareTo(Device other)
+        {
+            return String.Compare(label, other.label, StringComparison.CurrentCultureIgnoreCase);
+        }
     }
 
     public class Content
@@ -56,58 +84,30 @@ namespace Harmony
     public class Global
     {
         public string timeStampHash { get; set; }
+        public string locale { get; set; }
     }
 
-
-
-    public class Fixit
+    /// <summary>
+    /// Logitech HarmonyHub Configuration
+    /// </summary>
+    public class HarmonyConfigResult
     {
-        public __invalid_type__14766261 __invalid_name__14766261 { get; set; }
-        public __invalid_type__14766257 __invalid_name__14766257 { get; set; }
-        public __invalid_type__14766263 __invalid_name__14766263 { get; set; }
-        public __invalid_type__14766260 __invalid_name__14766260 { get; set; }
-        public __invalid_type__14766271 __invalid_name__14766271 { get; set; }
-        public __invalid_type__14766278 __invalid_name__14766278 { get; set; }
+        public List<Activity> activity { get; set; }
+        public List<Device> device { get; set; }
+        public List<object> sequence { get; set; }
+        public Content content { get; set; }
+        public Global global { get; set; }
+
+        public string ActivityNameFromId(string activityId)
+        {
+            return (from activityItem in activity where activityItem.id == activityId select activityItem.label).FirstOrDefault();
+        }
+
+        public string DeviceNameFromId(string deviceId)
+        {
+            return (from deviceItem in device where deviceItem.id == deviceId select deviceItem.label).FirstOrDefault();
+        }
+
     }
 
-    public class __invalid_type__14766261
-    {
-        public string id { get; set; }
-        public string Power { get; set; }
-    }
-
-    public class __invalid_type__14766257
-    {
-        public string id { get; set; }
-        public bool isRelativePower { get; set; }
-        public string Input { get; set; }
-        public string Power { get; set; }
-    }
-
-    public class __invalid_type__14766263
-    {
-        public string id { get; set; }
-        public bool isManualPower { get; set; }
-    }
-
-    public class __invalid_type__14766260
-    {
-        public string id { get; set; }
-        public string Input { get; set; }
-        public string Power { get; set; }
-    }
-
-    public class __invalid_type__14766271
-    {
-        public string id { get; set; }
-        public bool isRelativePower { get; set; }
-        public string Power { get; set; }
-        public string Input { get; set; }
-    }
-
-    public class __invalid_type__14766278
-    {
-        public string id { get; set; }
-        public string Power { get; set; }
-    }
 }

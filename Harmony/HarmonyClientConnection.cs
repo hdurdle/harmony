@@ -1,6 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using agsXMPP;
+﻿using agsXMPP;
 
 namespace Harmony
 {

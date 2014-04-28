@@ -1,11 +1,12 @@
-﻿using System.IO;
+﻿using System;
+using agsXMPP;
+using agsXMPP.protocol.client;
+using agsXMPP.Xml.Dom;
+using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web.Script.Serialization;
-using agsXMPP;
-using agsXMPP.protocol.client;
-using agsXMPP.Xml.Dom;
 
 namespace Harmony
 {

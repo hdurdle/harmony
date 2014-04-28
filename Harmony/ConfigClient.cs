@@ -1,13 +1,12 @@
-﻿using System;
-using System.Text.RegularExpressions;
-using System.Threading;
-using agsXMPP;
+﻿using agsXMPP;
 using agsXMPP.protocol.client;
 using agsXMPP.Xml.Dom;
+using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Harmony
 {
-    class ConfigClient : IDisposable
+    class ConfigClient
     {
         private readonly XmppClientConnection _xmpp;
         private bool _wait;
@@ -38,7 +37,7 @@ namespace Harmony
 
         private Document GetConfigMessage()
         {
-            var document = new Document {Namespace = "connect.logitech.com"};
+            var document = new Document { Namespace = "connect.logitech.com" };
 
             var element = new Element("oa");
             element.Attributes.Add("xmlns", "connect.logitech.com");
@@ -69,8 +68,6 @@ namespace Harmony
                     _wait = false;
                 Thread.Sleep(500);
             } while (_wait);
-
-            _xmpp.Close();
         }
 
         void OnIq(object sender, IQ iq)
@@ -89,11 +86,6 @@ namespace Harmony
                 }
             }
             _wait = false;
-        }
-
-        public void Dispose()
-        {
-            _xmpp.Close();
         }
     }
 }
