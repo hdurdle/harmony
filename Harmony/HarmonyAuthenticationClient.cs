@@ -2,48 +2,51 @@
 using agsXMPP.protocol.client;
 using agsXMPP.Xml.Dom;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Harmony
 {
-    class ConfigClient : HarmonyClient
+    public class HarmonyAuthenticationClient : HarmonyClient
     {
-        public string Config { get; set; }
-        public string SessionToken { get; set; }
+        private const string HubUsername = "guest@x.com";
+        private const string HubPassword = "guest";
 
-        public ConfigClient(string ipAddress, int port, string token)
-            : base(ipAddress, port)
-        {
-            SessionToken = token;
-            string username = string.Format("{0}@x.com", token);
+        private string _sessionToken;
 
-            Xmpp.OnIq += OnIq;
-            Xmpp.Open(username, token);
-
-            WaitForData(5);
-        }
-
-        private Document GetConfigMessage()
+        private Document GetAuthMessage(string token)
         {
             var document = new Document { Namespace = "connect.logitech.com" };
 
             var element = new Element("oa");
             element.Attributes.Add("xmlns", "connect.logitech.com");
-            element.Attributes.Add("mime", "vnd.logitech.harmony/vnd.logitech.harmony.engine?config");
+            element.Attributes.Add("mime", "vnd.logitech.connect/vnd.logitech.pair");
+            element.Value = string.Format("token={0}:name={1}#{2}", token, "foo", "iOS6.0.1#iPhone");
 
             document.AddChild(element);
             return document;
         }
 
-        public void GetConfig()
+        public HarmonyAuthenticationClient(string ipAddress, int port, string token)
+            : base(ipAddress, port)
+        {
+            Xmpp.OnIq += OnIq;
+            Xmpp.Open(HubUsername, HubPassword);
+
+            WaitForData(5);
+        }
+
+        public string SwapAuthToken(string token)
         {
             var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
-            iqToSend.AddChild(GetConfigMessage());
+            iqToSend.AddChild(GetAuthMessage(token));
             iqToSend.GenerateId();
 
             var iqGrabber = new IqGrabber(Xmpp);
             iqGrabber.SendIq(iqToSend, 10);
 
             WaitForData(5);
+
+            return _sessionToken;
         }
 
         void OnIq(object sender, IQ iq)
@@ -52,12 +55,12 @@ namespace Harmony
             {
                 if (iq.InnerXml.Contains("errorcode=\"200\""))
                 {
-                    const string identityRegEx = "errorstring=\"OK\">(.*)</oa>";
+                    const string identityRegEx = "identity=([A-Z0-9]{8}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{12}):status";
                     var regex = new Regex(identityRegEx, RegexOptions.IgnoreCase | RegexOptions.Singleline);
                     var match = regex.Match(iq.InnerXml);
                     if (match.Success)
                     {
-                        Config = match.Groups[1].ToString();
+                        _sessionToken = match.Groups[1].ToString();
                     }
 
                     Wait = false;

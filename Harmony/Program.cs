@@ -1,4 +1,5 @@
-﻿using CommandLine;
+﻿using agsXMPP.Xml.xpnet;
+using CommandLine;
 using CommandLine.Text;
 using System;
 using System.Collections.Generic;
@@ -26,13 +27,25 @@ namespace Harmony
             HelpText = "Device ID")]
         public string DeviceId { get; set; }
 
+        [Option('c', "command", Required = false,
+            HelpText = "Command to send to device")]
+        public string Command { get; set; }
+
         [Option('s', "start", Required = false,
             HelpText = "Activity ID to start")]
         public string ActivityId { get; set; }
 
+        [Option('l', "list", Required = false,
+            HelpText = "List devices or activities")]
+        public string ListType { get; set; }
+
         [Option('g', "get", Required = false,
             HelpText = "Get Current Activity")]
         public bool GetActivity { get; set; }
+
+        [Option('t', "turnoff", Required = false,
+            HelpText = "Turn system off")]
+        public bool TurnOff { get; set; }
 
         [ParserState]
         public IParserState LastParserState { get; set; }
@@ -79,13 +92,9 @@ namespace Harmony
                 foreach (var activity in harmonyConfig.activity)
                 {
                     Console.WriteLine(" {0}:{1}", activity.id, activity.label);
-
-                    // show fixit commands for each activity
-                    //foreach (var fixitCommand in activity.fixit)
-                    //{
-                    //    Console.WriteLine("   {0}:{1}:{2}", fixitCommand.Key, fixitCommand.Value.Input, fixitCommand.Value.Power);
-                    //}
                 }
+
+                ActivityClient activityClient = null;
 
                 Console.WriteLine();
                 Console.WriteLine("Devices:");
@@ -95,34 +104,47 @@ namespace Harmony
                     Console.WriteLine(" {0}:{1}", device.id, device.label);
                 }
 
-                if (!string.IsNullOrEmpty(deviceId))
+                if (!string.IsNullOrEmpty(options.DeviceId) && !string.IsNullOrEmpty(options.Command))
                 {
+                    if (null == activityClient) activityClient = new ActivityClient(ipAddress, harmonyPort, sessionToken);
+                    //activityClient.PressButton("14766260", "Mute");
+                    activityClient.PressButton(options.DeviceId, options.Command);
+                }
+
+                if (!string.IsNullOrEmpty(deviceId) && string.IsNullOrEmpty(options.Command))
+                {
+                    // just list device control options
                     foreach (var device in harmonyConfig.device.Where(device => device.id == deviceId))
                     {
                         foreach (Dictionary<string, object> controlGroup in device.controlGroup)
                         {
-                            foreach (var o in controlGroup)
+                            foreach (var o in controlGroup.Where(o => o.Key == "name"))
                             {
-                                if (o.Key == "name") Console.WriteLine("{0}:{1}", o.Key, o.Value);
+                                Console.WriteLine("{0}:{1}", o.Key, o.Value);
                             }
-
                         }
                     }
                 }
 
                 if (!string.IsNullOrEmpty(activityId))
                 {
-                    var activityClient = new ActivityClient(ipAddress, harmonyPort, sessionToken);
+                    if (null == activityClient) activityClient = new ActivityClient(ipAddress, harmonyPort, sessionToken);
                     activityClient.StartActivity(activityId);
                 }
 
                 if (options.GetActivity)
                 {
-                    var activityClient = new ActivityClient(ipAddress, harmonyPort, sessionToken);
+                    if (null == activityClient) activityClient = new ActivityClient(ipAddress, harmonyPort, sessionToken);
                     activityClient.GetCurrentActivity();
                     // now wait for it to be populated
                     while (string.IsNullOrEmpty(activityClient.CurrentActivity)) { }
                     Console.WriteLine("Current Activity: {0}", harmonyConfig.ActivityNameFromId(activityClient.CurrentActivity));
+                }
+
+                if (options.TurnOff)
+                {
+                    if (null == activityClient) activityClient = new ActivityClient(ipAddress, harmonyPort, sessionToken);
+                    activityClient.TurnOff();
                 }
 
             } // option parsing
@@ -130,15 +152,15 @@ namespace Harmony
 
         public static string LoginToLogitech(string email, string password, string ipAddress, int harmonyPort)
         {
-            var authentication = new HarmonyAuthentication();
-
-            string token = authentication.Login(email, password);
+            string token = HarmonyLogin.Login(email, password);
             if (string.IsNullOrEmpty(token))
             {
                 throw new Exception("Could not get token from Logitech server.");
             }
 
-            string sessionToken = authentication.SwapAuthToken(ipAddress, harmonyPort, token);
+            var authentication = new HarmonyAuthenticationClient(ipAddress, harmonyPort, token);
+
+            string sessionToken = authentication.SwapAuthToken(token);
             if (string.IsNullOrEmpty(sessionToken))
             {
                 throw new Exception("Could not swap token on Harmony Hub.");

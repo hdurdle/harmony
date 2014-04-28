@@ -1,45 +1,36 @@
-﻿using agsXMPP;
+﻿using System;
+using System.Web.Script.Serialization;
+using agsXMPP;
 using agsXMPP.protocol.client;
 using agsXMPP.Xml.Dom;
 using System.Text.RegularExpressions;
-using System.Threading;
 
 namespace Harmony
 {
-    class ActivityClient
+    class ActivityClient : HarmonyClient
     {
         enum ActivityCommandType
         {
             GetCurrent = 0,
-            Start = 1
+            Start = 1,
+            PressButton = 2
         }
 
-        private readonly XmppClientConnection _xmpp;
-        private bool _wait;
         private ActivityCommandType _activityCommand;
 
         public string CurrentActivity { get; set; }
         public string SessionToken { get; set; }
 
         public ActivityClient(string ipAddress, int port, string token)
+            : base(ipAddress, port)
         {
             SessionToken = token;
             string username = string.Format("{0}@x.com", token);
 
-            _xmpp = new HarmonyClientConnection(ipAddress, port);
-            _xmpp.OnLogin += delegate { _wait = false; };
-            _xmpp.OnIq += OnIq;
-            _xmpp.Open(username, token);
+            Xmpp.OnIq += OnIq;
+            Xmpp.Open(username, token);
 
-            _wait = true;
-            int i = 0;
-            do
-            {
-                i++;
-                if (i == 10)
-                    _wait = false;
-                Thread.Sleep(500);
-            } while (_wait);
+            WaitForData(5);
         }
 
         private Document GetStartActivityMessage(string activityId)
@@ -67,6 +58,25 @@ namespace Harmony
             return document;
         }
 
+        private Document IRCommandDocument(string deviceId, string command)
+        {
+            var document = new Document { Namespace = "connect.logitech.com" };
+
+            var element = new Element("oa");
+            element.Attributes.Add("xmlns", "connect.logitech.com");
+            element.Attributes.Add("mime", "vnd.logitech.harmony/vnd.logitech.harmony.engine?holdAction");
+
+            var action = new HarmonyAction { type = "IRCommand", deviceId = deviceId, command = command };
+            var json = new JavaScriptSerializer().Serialize(action);
+            // "action":"{\"command\":\"VolumeDown\",\"type\":\"IRCommand\",\"deviceId\":\"14766260\"}",
+            element.Value = string.Format("action={0}:status=press", json);
+
+            Console.WriteLine(element.Value);
+
+            document.AddChild(element);
+            return document;
+        }
+
         public void StartActivity(string activityId)
         {
             _activityCommand = ActivityCommandType.Start;
@@ -75,19 +85,10 @@ namespace Harmony
             iqToSend.AddChild(GetStartActivityMessage(activityId));
             iqToSend.GenerateId();
 
-            var iqGrabber = new IqGrabber(_xmpp);
+            var iqGrabber = new IqGrabber(Xmpp);
             iqGrabber.SendIq(iqToSend, 10);
 
-            _wait = true;
-            int i = 0;
-            do
-            {
-                i++;
-                if (i == 10)
-                    _wait = false;
-                Thread.Sleep(500);
-            } while (_wait);
-
+            WaitForData(5);
         }
 
         public void GetCurrentActivity()
@@ -98,31 +99,51 @@ namespace Harmony
             iqToSend.AddChild(GetCurrentActivityMessage());
             iqToSend.GenerateId();
 
-            var iqGrabber = new IqGrabber(_xmpp);
+            var iqGrabber = new IqGrabber(Xmpp);
             iqGrabber.SendIq(iqToSend, 10);
 
-            _wait = true;
-            int i = 0;
-            do
-            {
-                i++;
-                if (i == 10)
-                    _wait = false;
-                Thread.Sleep(500);
-            } while (_wait);
+            WaitForData(5);
+        }
 
+        public void PressButton(string deviceId, string command)
+        {
+            _activityCommand = ActivityCommandType.PressButton;
+
+            var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
+            iqToSend.AddChild(IRCommandDocument(deviceId, command));
+            iqToSend.GenerateId();
+
+            var iqGrabber = new IqGrabber(Xmpp);
+            iqGrabber.SendIq(iqToSend, 10);
+
+            WaitForData(5);
+        }
+
+        public void TurnOff()
+        {
+            GetCurrentActivity();
+            if (CurrentActivity != "-1")
+            {
+                StartActivity("-1");
+            }
         }
 
         void OnIq(object sender, IQ iq)
         {
+            if (_activityCommand == ActivityCommandType.PressButton)
+            {
+                Console.WriteLine(iq.InnerXml);
+            }
+
             if (iq.HasTag("oa"))
             {
                 if (iq.InnerXml.Contains("errorcode=\"200\""))
                 {
+                    const string identityRegEx = "errorstring=\"OK\">(.*)</oa>";
+                    var regex = new Regex(identityRegEx, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
                     if (_activityCommand == ActivityCommandType.GetCurrent)
                     {
-                        const string identityRegEx = "errorstring=\"OK\">(.*)</oa>";
-                        var regex = new Regex(identityRegEx, RegexOptions.IgnoreCase | RegexOptions.Singleline);
                         var match = regex.Match(iq.InnerXml);
                         if (match.Success)
                         {
@@ -130,7 +151,13 @@ namespace Harmony
                         }
                     }
 
-                    _wait = false;
+
+                    if (_activityCommand == ActivityCommandType.Start)
+                    {
+
+                    }
+
+                    Wait = false;
                 }
             }
         }

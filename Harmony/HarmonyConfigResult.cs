@@ -110,4 +110,10 @@ namespace Harmony
 
     }
 
+    public class HarmonyAction
+    {
+        public string type { get; set; }
+        public string deviceId { get; set; }
+        public string command { get; set; }
+    }
 }
