@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 
-namespace Harmony
+namespace HarmonyHub
 {
     /// <summary>
     /// Power and Input states to fix a device

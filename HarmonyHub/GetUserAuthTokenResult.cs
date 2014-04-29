@@ -1,4 +1,5 @@
-﻿namespace Harmony
+﻿
+namespace HarmonyHub
 {
     public class GetUserAuthTokenResult
     {
@@ -6,7 +7,7 @@
         public string UserAuthToken { get; set; }
     }
 
-    public class RootObject
+    public class GetUserAuthTokenResultRootObject
     {
         public GetUserAuthTokenResult GetUserAuthTokenResult { get; set; }
     }

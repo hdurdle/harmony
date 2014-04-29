@@ -1,6 +1,6 @@
 ﻿using agsXMPP;
 
-namespace Harmony
+namespace HarmonyHub
 {
     /// <summary>
     /// Extended XmppClientConnection with default settings compatible with Harmony Hub.

@@ -2,9 +2,9 @@
 using System.Net;
 using System.Web.Script.Serialization;
 
-namespace Harmony
+namespace HarmonyHub
 {
-    class HarmonyLogin
+    public class HarmonyLogin
     {
         private const string LogitechAuthUrl = "https://svcs.myharmony.com/CompositeSecurityServices/Security.svc/json/GetUserAuthToken";
 
@@ -24,16 +24,18 @@ namespace Harmony
 
                 streamWriter.Write(json);
                 streamWriter.Flush();
-                streamWriter.Close();
-
-                var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
-                using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
-                {
-                    var result = streamReader.ReadToEnd();
-                    var harmonyData = new JavaScriptSerializer().Deserialize<RootObject>(result);
-                    return harmonyData.GetUserAuthTokenResult.UserAuthToken;
-                }
             }
+
+            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result = streamReader.ReadToEnd();
+                var harmonyData = new JavaScriptSerializer().Deserialize<GetUserAuthTokenResultRootObject>(result);
+                return harmonyData.GetUserAuthTokenResult.UserAuthToken;
+            }
+
+
         }
     }
 }

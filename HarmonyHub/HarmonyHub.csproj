@@ -4,16 +4,15 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{DFDF65C8-E373-4325-ACBB-8762A41AAA82}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{561D5F22-2CCF-4D84-A677-EB54CC39AFBF}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Harmony</RootNamespace>
-    <AssemblyName>Harmony</AssemblyName>
+    <RootNamespace>HarmonyHub</RootNamespace>
+    <AssemblyName>HarmonyHub</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -23,7 +22,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -34,9 +32,6 @@
   <ItemGroup>
     <Reference Include="agsXMPP">
       <HintPath>..\packages\agsXMPP.1.1.1.0\lib\agsXMPP.dll</HintPath>
-    </Reference>
-    <Reference Include="CommandLine">
-      <HintPath>..\packages\CommandLineParser.1.9.71\lib\net45\CommandLine.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -49,19 +44,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ActivityClient.cs" />
     <Compile Include="GetUserAuthTokenResult.cs" />
     <Compile Include="HarmonyAuthenticationClient.cs" />
-    <Compile Include="ConfigClient.cs" />
     <Compile Include="HarmonyClient.cs" />
     <Compile Include="HarmonyClientConnection.cs" />
     <Compile Include="HarmonyConfigResult.cs" />
+    <Compile Include="HarmonyDocuments.cs" />
     <Compile Include="HarmonyLogin.cs" />
-    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="HarmonyHub.cd" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
