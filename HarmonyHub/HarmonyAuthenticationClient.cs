@@ -17,7 +17,7 @@ namespace HarmonyHub
         public string SwapAuthToken(string token)
         {
             var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
-            iqToSend.AddChild(HarmonyDocuments.GetAuthMessage(token));
+            iqToSend.AddChild(HarmonyDocuments.LogitechPairDocument(token));
             iqToSend.GenerateId();
 
             var iqGrabber = new IqGrabber(Xmpp);

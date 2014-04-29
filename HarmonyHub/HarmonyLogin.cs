@@ -34,8 +34,6 @@ namespace HarmonyHub
                 var harmonyData = new JavaScriptSerializer().Deserialize<GetUserAuthTokenResultRootObject>(result);
                 return harmonyData.GetUserAuthTokenResult.UserAuthToken;
             }
-
-
         }
     }
 }

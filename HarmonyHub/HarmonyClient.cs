@@ -1,7 +1,7 @@
-﻿using System.Text.RegularExpressions;
-using agsXMPP;
-using System.Threading;
+﻿using agsXMPP;
 using agsXMPP.protocol.client;
+using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace HarmonyHub
 {
@@ -44,7 +44,7 @@ namespace HarmonyHub
             _clientCommand = ClientCommandType.GetConfig;
 
             var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
-            iqToSend.AddChild(HarmonyDocuments.GetConfigMessage());
+            iqToSend.AddChild(HarmonyDocuments.ConfigDocument());
             iqToSend.GenerateId();
 
             var iqGrabber = new IqGrabber(Xmpp);
@@ -58,7 +58,7 @@ namespace HarmonyHub
             _clientCommand = ClientCommandType.StartActivity;
 
             var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
-            iqToSend.AddChild(HarmonyDocuments.GetStartActivityMessage(activityId));
+            iqToSend.AddChild(HarmonyDocuments.StartActivityDocument(activityId));
             iqToSend.GenerateId();
 
             var iqGrabber = new IqGrabber(Xmpp);
@@ -72,7 +72,7 @@ namespace HarmonyHub
             _clientCommand = ClientCommandType.GetCurrentActivity;
 
             var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
-            iqToSend.AddChild(HarmonyDocuments.GetCurrentActivityMessage());
+            iqToSend.AddChild(HarmonyDocuments.GetCurrentActivityDocument());
             iqToSend.GenerateId();
 
             var iqGrabber = new IqGrabber(Xmpp);

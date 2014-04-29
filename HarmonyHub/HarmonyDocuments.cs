@@ -1,6 +1,5 @@
-﻿using System;
+﻿using agsXMPP.Xml.Dom;
 using System.Web.Script.Serialization;
-using agsXMPP.Xml.Dom;
 
 namespace HarmonyHub
 {
@@ -14,7 +13,7 @@ namespace HarmonyHub
             }
         }
 
-        public static HarmonyDocument GetStartActivityMessage(string activityId)
+        public static HarmonyDocument StartActivityDocument(string activityId)
         {
             var document = new HarmonyDocument();
 
@@ -27,7 +26,7 @@ namespace HarmonyHub
             return document;
         }
 
-        public static HarmonyDocument GetCurrentActivityMessage()
+        public static HarmonyDocument GetCurrentActivityDocument()
         {
             var document = new HarmonyDocument();
 
@@ -49,16 +48,14 @@ namespace HarmonyHub
 
             var action = new HarmonyAction { type = "IRCommand", deviceId = deviceId, command = command };
             var json = new JavaScriptSerializer().Serialize(action);
-            // "action":"{\"command\":\"VolumeDown\",\"type\":\"IRCommand\",\"deviceId\":\"14766260\"}",
-            element.Value = string.Format("action={0}:status=press", json);
 
-            Console.WriteLine(element.Value);
+            element.Value = string.Format("action={0}:status=press", json);
 
             document.AddChild(element);
             return document;
         }
 
-        public static HarmonyDocument GetConfigMessage()
+        public static HarmonyDocument ConfigDocument()
         {
             var document = new HarmonyDocument();
 
@@ -70,7 +67,7 @@ namespace HarmonyHub
             return document;
         }
 
-        public static HarmonyDocument GetAuthMessage(string token)
+        public static HarmonyDocument LogitechPairDocument(string token)
         {
             var document = new HarmonyDocument();
 
