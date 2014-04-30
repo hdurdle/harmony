@@ -1,4 +1,5 @@
-﻿using agsXMPP.Xml.Dom;
+﻿using System;
+using agsXMPP.Xml.Dom;
 using System.Web.Script.Serialization;
 
 namespace HarmonyHub
@@ -49,9 +50,16 @@ namespace HarmonyHub
             var action = new HarmonyAction { type = "IRCommand", deviceId = deviceId, command = command };
             var json = new JavaScriptSerializer().Serialize(action);
 
+            // At this point our valid json won't work - we need to break it so it looks like:
+            // {"type"::"IRCommand","deviceId"::"deviceId","command"::"command"}
+            // note double colons 
+
+            json = json.Replace(":", "::");
+
             element.Value = string.Format("action={0}:status=press", json);
 
             document.AddChild(element);
+
             return document;
         }
 

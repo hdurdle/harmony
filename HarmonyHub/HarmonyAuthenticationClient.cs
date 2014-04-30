@@ -4,6 +4,9 @@ using System.Text.RegularExpressions;
 
 namespace HarmonyHub
 {
+    /// <summary>
+    /// HarmonyClient for swapping a UserAuthToken for a Session Token
+    /// </summary>
     public class HarmonyAuthenticationClient : HarmonyClient
     {
         private string _sessionToken;
@@ -14,10 +17,15 @@ namespace HarmonyHub
             Xmpp.OnIq += OnIq;
         }
 
-        public string SwapAuthToken(string token)
+        /// <summary>
+        /// Send message to HarmonyHub with UserAuthToken, wait for SessionToken
+        /// </summary>
+        /// <param name="userAuthToken"></param>
+        /// <returns></returns>
+        public string SwapAuthToken(string userAuthToken)
         {
             var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
-            iqToSend.AddChild(HarmonyDocuments.LogitechPairDocument(token));
+            iqToSend.AddChild(HarmonyDocuments.LogitechPairDocument(userAuthToken));
             iqToSend.GenerateId();
 
             var iqGrabber = new IqGrabber(Xmpp);

@@ -6,26 +6,30 @@ using System.Runtime.Serialization;
 namespace HarmonyHub
 {
     /// <summary>
-    /// Power and Input states to fix a device
+    /// Logitech HarmonyHub Configuration
     /// </summary>
-    [DataContract]
-    public class FixItCommand
+    public class HarmonyConfigResult
     {
-        /// <summary>
-        /// Device ID for fix settings
-        /// </summary>
-        [DataMember]
-        public string id { get; set; }
-        [DataMember]
-        public bool isRelativePower { get; set; }
-        [DataMember]
-        public bool isManualPower { get; set; }
-        [DataMember]
-        public string Power { get; set; }
-        [DataMember]
-        public string Input { get; set; }
+        public List<Activity> activity { get; set; }
+        public List<Device> device { get; set; }
+        public List<object> sequence { get; set; }
+        public Content content { get; set; }
+        public Global global { get; set; }
+
+        public string ActivityNameFromId(string activityId)
+        {
+            return (from activityItem in activity where activityItem.id == activityId select activityItem.label).FirstOrDefault();
+        }
+
+        public string DeviceNameFromId(string deviceId)
+        {
+            return (from deviceItem in device where deviceItem.id == deviceId select deviceItem.label).FirstOrDefault();
+        }
     }
 
+    /// <summary>
+    /// HarmonyHub Activity
+    /// </summary>
     public class Activity : IComparable<Activity>
     {
         public string suggestedDisplay { get; set; }
@@ -47,6 +51,9 @@ namespace HarmonyHub
         }
     }
 
+    /// <summary>
+    /// HarmonyHub Device
+    /// </summary>
     public class Device : IComparable<Device>
     {
         public int Transport { get; set; }
@@ -88,32 +95,44 @@ namespace HarmonyHub
     }
 
     /// <summary>
-    /// Logitech HarmonyHub Configuration
+    /// Power and Input states to "fix" a device
     /// </summary>
-    public class HarmonyConfigResult
+    [DataContract]
+    public class FixItCommand
     {
-        public List<Activity> activity { get; set; }
-        public List<Device> device { get; set; }
-        public List<object> sequence { get; set; }
-        public Content content { get; set; }
-        public Global global { get; set; }
-
-        public string ActivityNameFromId(string activityId)
-        {
-            return (from activityItem in activity where activityItem.id == activityId select activityItem.label).FirstOrDefault();
-        }
-
-        public string DeviceNameFromId(string deviceId)
-        {
-            return (from deviceItem in device where deviceItem.id == deviceId select deviceItem.label).FirstOrDefault();
-        }
-
+        /// <summary>
+        /// Device ID for fix settings
+        /// </summary>
+        [DataMember]
+        public string id { get; set; }
+        [DataMember]
+        public bool isRelativePower { get; set; }
+        [DataMember]
+        public bool isManualPower { get; set; }
+        [DataMember]
+        public string Power { get; set; }
+        [DataMember]
+        public string Input { get; set; }
     }
 
+    /// <summary>
+    /// HarmonyHub Remote Action
+    /// </summary>
     public class HarmonyAction
     {
+        /// <summary>
+        /// Action Type (IRCommand)
+        /// </summary>
         public string type { get; set; }
+
+        /// <summary>
+        /// DeviceId to receive command
+        /// </summary>
         public string deviceId { get; set; }
+
+        /// <summary>
+        /// HarmonyHub command to send to device
+        /// </summary>
         public string command { get; set; }
     }
 }

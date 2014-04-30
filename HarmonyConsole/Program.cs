@@ -93,6 +93,7 @@ namespace HarmonyConsole
                     while (string.IsNullOrEmpty(client.Config)) { }
 
                     harmonyConfig = new JavaScriptSerializer().Deserialize<HarmonyConfigResult>(client.Config);
+
                 }
 
                 if (!string.IsNullOrEmpty(deviceId) && !string.IsNullOrEmpty(options.Command))
@@ -102,7 +103,7 @@ namespace HarmonyConsole
                     client.PressButton(deviceId, options.Command);
                 }
 
-                if (!string.IsNullOrEmpty(deviceId) && string.IsNullOrEmpty(options.Command))
+                if (null != harmonyConfig && !string.IsNullOrEmpty(deviceId) && string.IsNullOrEmpty(options.Command))
                 {
                     // just list device control options
                     foreach (var device in harmonyConfig.device.Where(device => device.id == deviceId))
@@ -123,9 +124,8 @@ namespace HarmonyConsole
                     client.StartActivity(activityId);
                 }
 
-                if (options.GetActivity)
+                if (null != harmonyConfig && options.GetActivity)
                 {
-                    if (null == client) client = new HarmonyClient(ipAddress, harmonyPort, sessionToken);
                     client.GetCurrentActivity();
                     // now wait for it to be populated
                     while (string.IsNullOrEmpty(client.CurrentActivity)) { }
@@ -138,7 +138,7 @@ namespace HarmonyConsole
                     client.TurnOff();
                 }
 
-                if (!string.IsNullOrEmpty(options.ListType))
+                if (null != harmonyConfig && !string.IsNullOrEmpty(options.ListType))
                 {
                     if (!options.ListType.Equals("d") && !options.ListType.Equals("a")) return;
 
@@ -168,15 +168,15 @@ namespace HarmonyConsole
 
         public static string LoginToLogitech(string email, string password, string ipAddress, int harmonyPort)
         {
-            string token = HarmonyLogin.Login(email, password);
-            if (string.IsNullOrEmpty(token))
+            string userAuthToken = HarmonyLogin.GetUserAuthToken(email, password);
+            if (string.IsNullOrEmpty(userAuthToken))
             {
                 throw new Exception("Could not get token from Logitech server.");
             }
 
             var authentication = new HarmonyAuthenticationClient(ipAddress, harmonyPort);
 
-            string sessionToken = authentication.SwapAuthToken(token);
+            string sessionToken = authentication.SwapAuthToken(userAuthToken);
             if (string.IsNullOrEmpty(sessionToken))
             {
                 throw new Exception("Could not swap token on Harmony Hub.");

@@ -6,11 +6,17 @@ namespace HarmonyHub
 {
     public class HarmonyLogin
     {
-        private const string LogitechAuthUrl = "https://svcs.myharmony.com/CompositeSecurityServices/Security.svc/json/GetUserAuthToken";
-
-        public static string Login(string username, string password)
+        /// <summary>
+        /// Logs in to the Logitech Harmony web service to get a UserAuthToken.
+        /// </summary>
+        /// <param name="username">myharmony.com username</param>
+        /// <param name="password">myharmony.com password</param>
+        /// <returns>Logitech UserAuthToken</returns>
+        public static string GetUserAuthToken(string username, string password)
         {
-            var httpWebRequest = (HttpWebRequest)WebRequest.Create(LogitechAuthUrl);
+            const string logitechAuthUrl = "https://svcs.myharmony.com/CompositeSecurityServices/Security.svc/json/GetUserAuthToken";
+
+            var httpWebRequest = (HttpWebRequest)WebRequest.Create(logitechAuthUrl);
             httpWebRequest.ContentType = "text/json";
             httpWebRequest.Method = "POST";
 
@@ -28,7 +34,10 @@ namespace HarmonyHub
 
             var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
 
-            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            var responseStream = httpResponse.GetResponseStream();
+            if (responseStream == null) return null;
+
+            using (var streamReader = new StreamReader(responseStream))
             {
                 var result = streamReader.ReadToEnd();
                 var harmonyData = new JavaScriptSerializer().Deserialize<GetUserAuthTokenResultRootObject>(result);

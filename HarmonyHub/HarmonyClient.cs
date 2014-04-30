@@ -1,15 +1,19 @@
-﻿using agsXMPP;
+﻿using System;
+using agsXMPP;
 using agsXMPP.protocol.client;
 using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace HarmonyHub
 {
+    /// <summary>
+    /// Client to interrogate and control Logitech Harmony Hub.
+    /// </summary>
     public class HarmonyClient
     {
         protected bool Wait;
 
-        protected XmppClientConnection Xmpp;
+        protected HarmonyClientConnection Xmpp;
 
         enum ClientCommandType
         {
@@ -25,6 +29,12 @@ namespace HarmonyHub
         public string SessionToken { get; set; }
         public string CurrentActivity { get; set; }
 
+        /// <summary>
+        /// Constructor with standard settings for a new HarmonyClient
+        /// </summary>
+        /// <param name="ipAddress"></param>
+        /// <param name="port"></param>
+        /// <param name="token"></param>
         public HarmonyClient(string ipAddress, int port, string token)
         {
             Xmpp = new HarmonyClientConnection(ipAddress, port);
@@ -39,6 +49,12 @@ namespace HarmonyHub
             WaitForData(5);
         }
 
+        #region Send Messages to HarmonyHub
+
+        /// <summary>
+        /// Send message to HarmonyHub to request Configuration.
+        /// Result is parsed by OnIq based on ClientCommandType
+        /// </summary>
         public void GetConfig()
         {
             _clientCommand = ClientCommandType.GetConfig;
@@ -53,6 +69,11 @@ namespace HarmonyHub
             WaitForData(5);
         }
 
+        /// <summary>
+        /// Send message to HarmonyHub to start a given activity
+        /// Result is parsed by OnIq based on ClientCommandType
+        /// </summary>
+        /// <param name="activityId"></param>
         public void StartActivity(string activityId)
         {
             _clientCommand = ClientCommandType.StartActivity;
@@ -67,6 +88,10 @@ namespace HarmonyHub
             WaitForData(5);
         }
 
+        /// <summary>
+        /// Send message to HarmonyHub to request current activity
+        /// Result is parsed by OnIq based on ClientCommandType
+        /// </summary>
         public void GetCurrentActivity()
         {
             _clientCommand = ClientCommandType.GetCurrentActivity;
@@ -81,6 +106,12 @@ namespace HarmonyHub
             WaitForData(5);
         }
 
+        /// <summary>
+        /// Send message to HarmonyHub to request to press a button
+        /// Result is parsed by OnIq based on ClientCommandType
+        /// </summary>
+        /// <param name="deviceId"></param>
+        /// <param name="command"></param>
         public void PressButton(string deviceId, string command)
         {
             _clientCommand = ClientCommandType.PressButton;
@@ -95,6 +126,9 @@ namespace HarmonyHub
             WaitForData(5);
         }
 
+        /// <summary>
+        /// Send message to HarmonyHub to request to turn off all devices
+        /// </summary>
         public void TurnOff()
         {
             GetCurrentActivity();
@@ -103,6 +137,13 @@ namespace HarmonyHub
                 StartActivity("-1");
             }
         }
+
+        #endregion
+
+        /// <summary>
+        /// Wait for timeoutSeconds to allow messages to be received from the HarmonyHub
+        /// </summary>
+        /// <param name="timeoutSeconds"></param>
         protected void WaitForData(int timeoutSeconds)
         {
             Wait = true;
@@ -116,42 +157,53 @@ namespace HarmonyHub
             } while (Wait);
         }
 
+        /// <summary>
+        /// Fires on receipt of an Iq message from the HarmonyHub
+        /// Check ClientCommandType to determine what to do
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="iq"></param>
         void OnIq(object sender, IQ iq)
         {
             if (iq.HasTag("oa"))
             {
+                // Keep receiving messages until we get a 200 status
+                // Activity commands send 100 (continue) until they finish
                 if (iq.InnerXml.Contains("errorcode=\"200\""))
                 {
                     const string identityRegEx = "errorstring=\"OK\">(.*)</oa>";
                     var regex = new Regex(identityRegEx, RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-                    if (_clientCommand == ClientCommandType.PressButton)
+                    switch (_clientCommand)
                     {
-                        //Console.WriteLine(iq.InnerXml);
-                    }
-
-                    if (_clientCommand == ClientCommandType.GetConfig)
-                    {
-                        var match = regex.Match(iq.InnerXml);
-                        if (match.Success)
-                        {
-                            Config = match.Groups[1].ToString();
-                        }
-                    }
-
-                    if (_clientCommand == ClientCommandType.GetCurrentActivity)
-                    {
-                        var match = regex.Match(iq.InnerXml);
-                        if (match.Success)
-                        {
-                            CurrentActivity = match.Groups[1].ToString().Split('=')[1];
-                        }
-                    }
-
-
-                    if (_clientCommand == ClientCommandType.StartActivity)
-                    {
-
+                        case ClientCommandType.GetConfig:
+                            {
+                                var match = regex.Match(iq.InnerXml);
+                                if (match.Success)
+                                {
+                                    Config = match.Groups[1].ToString();
+                                }
+                            }
+                            break;
+                        case ClientCommandType.GetCurrentActivity:
+                            {
+                                var match = regex.Match(iq.InnerXml);
+                                if (match.Success)
+                                {
+                                    CurrentActivity = match.Groups[1].ToString().Split('=')[1];
+                                }
+                            }
+                            break;
+                        case ClientCommandType.PressButton:
+                            {
+                                var match = regex.Match(iq.InnerXml);
+                                if (match.Success)
+                                {
+                                }
+                            }
+                            break;
+                        case ClientCommandType.StartActivity:
+                            break;
                     }
 
                     Wait = false;

@@ -3,9 +3,9 @@
 namespace HarmonyHub
 {
     /// <summary>
-    /// Extended XmppClientConnection with default settings compatible with Harmony Hub.
+    /// An XmppClientConnection for connecting to the Logitech Harmony Hub.
     /// </summary>
-    class HarmonyClientConnection : XmppClientConnection
+    public class HarmonyClientConnection : XmppClientConnection
     {
         public HarmonyClientConnection(string ipAddress, int port)
             : base(ipAddress, port)
