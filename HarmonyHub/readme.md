@@ -11,15 +11,17 @@ Status
 - Querying for entire device configuration working.
 - Querying for current activity working.
 - Start a specific activity (or switch off) working.
-- Work in progress: send specific button press
+- Send specific button press to a device working.
 
 Usage
 -----
 
-Check out the HarmonyConsole project to see usage of the HarmonyHub.
+Include the HarmonyHub class library project in your solution to use the
+functionality.  
 
-Full usage:
+To better understand what it does and how, play with the HarmonyConsole project:
 
+    HarmonyConsole usage:
       -i, --ip         Required. IP Address of Harmony Hub.
       -u, --user       Required. Logitech Username
       -p, --pass       Required. Logitech Password
@@ -38,15 +40,14 @@ the HarmonyHub at IP 10.0.0.1:
 
 Protocol
 --------
-Check out the [protocol.md][protocol] at the pyharmony repo for the current
-progress.
+Check out the PROTOCOL.md for current progress, or see the original linked below.
 
 Thanks
 ------
-
 With thanks to [petele] and [jterrace] for their work on pyharmony which 
 pointed me in the right direction, first  found via [Pete's Blog][petelepage].
-Also to the HarmonyHubControl[hhc] project on Sourceforge.
+Also to the guys behind the [HarmonyHubControl][hhc] project on Sourceforge
+who have implemented a C++ version of similar code.
 
 TODO
 ----
@@ -64,4 +65,4 @@ new one.
 [jterrace]:https://github.com/jterrace/pyharmony/
 [petele]:https://github.com/petele/pyharmony
 [protocol]:https://github.com/jterrace/pyharmony/blob/master/PROTOCOL.md
-[x]:http://sourceforge.net/projects/harmonyhubcontrol/
+[hhc]:http://sourceforge.net/projects/harmonyhubcontrol/
