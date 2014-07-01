@@ -1,5 +1,4 @@
-﻿using System;
-using agsXMPP.Xml.Dom;
+﻿using agsXMPP.Xml.Dom;
 using System.Web.Script.Serialization;
 
 namespace HarmonyHub

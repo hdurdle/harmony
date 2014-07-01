@@ -1,4 +1,5 @@
-﻿using CommandLine;
+﻿using System.IO;
+using CommandLine;
 using CommandLine.Text;
 using HarmonyHub;
 using System;
@@ -78,7 +79,17 @@ namespace HarmonyConsole
 
                 Dns.GetHostEntry(ipAddress);
 
-                string sessionToken = LoginToLogitech(username, password, ipAddress, harmonyPort);
+                string sessionToken;
+
+                if (File.Exists("SessionToken"))
+                {
+                    sessionToken = File.ReadAllText("SessionToken");
+                    Console.WriteLine("Reusing token: {0}", sessionToken);
+                }
+                else
+                {
+                    sessionToken = LoginToLogitech(username, password, ipAddress, harmonyPort);
+                }
 
                 // do we need to grab the config first?
                 HarmonyConfigResult harmonyConfig = null;
@@ -91,7 +102,7 @@ namespace HarmonyConsole
                     client.GetConfig();
 
                     while (string.IsNullOrEmpty(client.Config)) { }
-
+                    File.WriteAllText("HubConfig", client.Config);
                     harmonyConfig = new JavaScriptSerializer().Deserialize<HarmonyConfigResult>(client.Config);
 
                 }
@@ -174,6 +185,8 @@ namespace HarmonyConsole
                 throw new Exception("Could not get token from Logitech server.");
             }
 
+            File.WriteAllText("UserAuthToken", userAuthToken);
+
             var authentication = new HarmonyAuthenticationClient(ipAddress, harmonyPort);
 
             string sessionToken = authentication.SwapAuthToken(userAuthToken);
@@ -181,6 +194,12 @@ namespace HarmonyConsole
             {
                 throw new Exception("Could not swap token on Harmony Hub.");
             }
+
+            File.WriteAllText("SessionToken", sessionToken);
+
+            Console.WriteLine("Date Time : {0}", DateTime.Now);
+            Console.WriteLine("User Token: {0}", userAuthToken);
+            Console.WriteLine("Sess Token: {0}", sessionToken);
 
             return sessionToken;
         }

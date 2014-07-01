@@ -1,5 +1,4 @@
-﻿using System;
-using agsXMPP;
+﻿using agsXMPP;
 using agsXMPP.protocol.client;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -121,7 +120,7 @@ namespace HarmonyHub
             iqToSend.GenerateId();
 
             var iqGrabber = new IqGrabber(Xmpp);
-            iqGrabber.SendIq(iqToSend, 10);
+            iqGrabber.SendIq(iqToSend, 5);
 
             WaitForData(5);
         }
@@ -210,6 +209,5 @@ namespace HarmonyHub
                 }
             }
         }
-
     }
 }
