@@ -3,6 +3,8 @@
 
 C# library for connecting to and controlling the Logitech Harmony Hub.
 
+[![Build status](https://ci.appveyor.com/api/projects/status/1exdi569ddfkm5c4)](https://ci.appveyor.com/project/hdurdle/harmony)
+
 Status
 ------
 
