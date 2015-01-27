@@ -170,7 +170,7 @@ namespace HarmonyHub
                 // Activity commands send 100 (continue) until they finish
                 if (iq.InnerXml.Contains("errorcode=\"200\""))
                 {
-                    const string identityRegEx = "errorstring=\"OK\">(.*)</oa>";
+                    const string identityRegEx = "\">(.*)</oa>";
                     var regex = new Regex(identityRegEx, RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
                     switch (_clientCommand)
