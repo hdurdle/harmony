@@ -1,6 +1,5 @@
 ﻿using agsXMPP;
 using agsXMPP.protocol.client;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace HarmonyHub
@@ -16,13 +15,14 @@ namespace HarmonyHub
 
         enum ClientCommandType
         {
+            None = -1,
             GetCurrentActivity = 0,
             StartActivity = 1,
             PressButton = 2,
             GetConfig = 3
         }
 
-        private ClientCommandType _clientCommand;
+        private ClientCommandType _clientCommand = ClientCommandType.None;
 
         public string Config { get; set; }
         public string SessionToken { get; set; }
@@ -40,7 +40,7 @@ namespace HarmonyHub
             Xmpp.OnLogin += delegate { Wait = false; };
 
             SessionToken = token;
-            string username = string.Format("{0}@x.com", token);
+            string username = $"{token}@x.com";
 
             Xmpp.OnIq += OnIq;
             Xmpp.Open(username, token);
@@ -166,40 +166,22 @@ namespace HarmonyHub
         {
             if (iq.HasTag("oa"))
             {
+                var oaElement = iq.SelectSingleElement("oa");
                 // Keep receiving messages until we get a 200 status
                 // Activity commands send 100 (continue) until they finish
-                if (iq.InnerXml.Contains("errorcode=\"200\""))
+                if ("200".Equals(oaElement.GetAttribute("errorcode")))
                 {
-                    const string identityRegEx = "\">(.*)</oa>";
-                    var regex = new Regex(identityRegEx, RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
+                    var data = oaElement.GetData();
                     switch (_clientCommand)
                     {
                         case ClientCommandType.GetConfig:
-                            {
-                                var match = regex.Match(iq.InnerXml);
-                                if (match.Success)
-                                {
-                                    Config = match.Groups[1].ToString();
-                                }
-                            }
+                            Config = data;
                             break;
                         case ClientCommandType.GetCurrentActivity:
-                            {
-                                var match = regex.Match(iq.InnerXml);
-                                if (match.Success)
-                                {
-                                    CurrentActivity = match.Groups[1].ToString().Split('=')[1];
-                                }
-                            }
+                            // result=<activity>
+                            CurrentActivity = data.Split('=')[1];
                             break;
                         case ClientCommandType.PressButton:
-                            {
-                                var match = regex.Match(iq.InnerXml);
-                                if (match.Success)
-                                {
-                                }
-                            }
                             break;
                         case ClientCommandType.StartActivity:
                             break;
