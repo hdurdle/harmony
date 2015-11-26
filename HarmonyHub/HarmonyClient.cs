@@ -116,7 +116,7 @@ namespace HarmonyHub
             _clientCommand = ClientCommandType.PressButton;
 
             var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
-            iqToSend.AddChild(HarmonyDocuments.IRCommandDocument(deviceId, command));
+            iqToSend.AddChild(HarmonyDocuments.IrCommandDocument(deviceId, command));
             iqToSend.GenerateId();
 
             var iqGrabber = new IqGrabber(Xmpp);
