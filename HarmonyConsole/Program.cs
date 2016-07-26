@@ -1,10 +1,10 @@
-﻿using System.IO;
-using CommandLine;
-using HarmonyHub;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Web.Script.Serialization;
+using CommandLine;
+using HarmonyHub;
 
 namespace HarmonyConsole
 {
@@ -49,10 +49,11 @@ namespace HarmonyConsole
                 client = new HarmonyClient(ipAddress, harmonyPort, sessionToken);
                 client.GetConfig();
 
-                while (string.IsNullOrEmpty(client.Config)) { }
+                while (string.IsNullOrEmpty(client.Config))
+                {
+                }
                 File.WriteAllText("HubConfig", client.Config);
                 harmonyConfig = new JavaScriptSerializer().Deserialize<HarmonyConfigResult>(client.Config);
-
             }
 
             if (!string.IsNullOrEmpty(deviceId) && !string.IsNullOrEmpty(options.Command))
@@ -93,7 +94,9 @@ namespace HarmonyConsole
             {
                 client.GetCurrentActivity();
                 // now wait for it to be populated
-                while (string.IsNullOrEmpty(client.CurrentActivity)) { }
+                while (string.IsNullOrEmpty(client.CurrentActivity))
+                {
+                }
                 Console.WriteLine("Current Activity: {0}", harmonyConfig.ActivityNameFromId(client.CurrentActivity));
             }
 

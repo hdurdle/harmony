@@ -105,12 +105,16 @@ namespace HarmonyHub
         /// </summary>
         [DataMember]
         public string id { get; set; }
+
         [DataMember]
         public bool isRelativePower { get; set; }
+
         [DataMember]
         public bool isManualPower { get; set; }
+
         [DataMember]
         public string Power { get; set; }
+
         [DataMember]
         public string Input { get; set; }
     }

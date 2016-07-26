@@ -1,6 +1,6 @@
-﻿using agsXMPP;
+﻿using System.Threading;
+using agsXMPP;
 using agsXMPP.protocol.client;
-using System.Threading;
 
 namespace HarmonyHub
 {
@@ -58,7 +58,7 @@ namespace HarmonyHub
         {
             _clientCommand = ClientCommandType.GetConfig;
 
-            var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
+            var iqToSend = new IQ {Type = IqType.get, Namespace = "", From = "1", To = "guest"};
             iqToSend.AddChild(HarmonyDocuments.ConfigDocument());
             iqToSend.GenerateId();
 
@@ -77,7 +77,7 @@ namespace HarmonyHub
         {
             _clientCommand = ClientCommandType.StartActivity;
 
-            var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
+            var iqToSend = new IQ {Type = IqType.get, Namespace = "", From = "1", To = "guest"};
             iqToSend.AddChild(HarmonyDocuments.StartActivityDocument(activityId));
             iqToSend.GenerateId();
 
@@ -95,7 +95,7 @@ namespace HarmonyHub
         {
             _clientCommand = ClientCommandType.GetCurrentActivity;
 
-            var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
+            var iqToSend = new IQ {Type = IqType.get, Namespace = "", From = "1", To = "guest"};
             iqToSend.AddChild(HarmonyDocuments.GetCurrentActivityDocument());
             iqToSend.GenerateId();
 
@@ -115,7 +115,7 @@ namespace HarmonyHub
         {
             _clientCommand = ClientCommandType.PressButton;
 
-            var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
+            var iqToSend = new IQ {Type = IqType.get, Namespace = "", From = "1", To = "guest"};
             iqToSend.AddChild(HarmonyDocuments.IrCommandDocument(deviceId, command));
             iqToSend.GenerateId();
 
@@ -150,7 +150,7 @@ namespace HarmonyHub
             do
             {
                 i++;
-                if (i == (timeoutSeconds * 2))
+                if (i == (timeoutSeconds*2))
                     Wait = false;
                 Thread.Sleep(500);
             } while (Wait);

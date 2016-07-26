@@ -44,7 +44,7 @@ namespace HarmonyHub
         {
             const string logitechAuthUrl = "https://svcs.myharmony.com/CompositeSecurityServices/Security.svc/json/GetUserAuthToken";
 
-            var httpWebRequest = (HttpWebRequest)WebRequest.Create(logitechAuthUrl);
+            var httpWebRequest = (HttpWebRequest) WebRequest.Create(logitechAuthUrl);
             httpWebRequest.ContentType = "text/json";
             httpWebRequest.Method = "POST";
 
@@ -60,7 +60,7 @@ namespace HarmonyHub
                 streamWriter.Flush();
             }
 
-            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+            var httpResponse = (HttpWebResponse) httpWebRequest.GetResponse();
 
             var responseStream = httpResponse.GetResponseStream();
             if (responseStream == null) return null;
