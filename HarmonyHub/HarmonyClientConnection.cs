@@ -1,4 +1,5 @@
 ﻿using agsXMPP;
+using agsXMPP.Sasl;
 
 namespace HarmonyHub
 {
@@ -28,7 +29,7 @@ namespace HarmonyHub
             throw ex;
         }
 
-        static void HarmonyClientConnection_OnSaslStart(object sender, agsXMPP.sasl.SaslEventArgs args)
+        static void HarmonyClientConnection_OnSaslStart(object sender, SaslEventArgs args)
         {
             args.Auto = false;
             args.Mechanism = "PLAIN";

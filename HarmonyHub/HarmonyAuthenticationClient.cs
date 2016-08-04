@@ -1,6 +1,5 @@
 ﻿using agsXMPP;
 using agsXMPP.protocol.client;
-using System.Text.RegularExpressions;
 
 namespace HarmonyHub
 {
@@ -24,7 +23,7 @@ namespace HarmonyHub
         /// <returns></returns>
         public string SwapAuthToken(string userAuthToken)
         {
-            var iqToSend = new IQ { Type = IqType.get, Namespace = "", From = "1", To = "guest" };
+            var iqToSend = new IQ {Type = IqType.get, Namespace = "", From = "1", To = "guest"};
             iqToSend.AddChild(HarmonyDocuments.LogitechPairDocument(userAuthToken));
             iqToSend.GenerateId();
 
@@ -38,21 +37,21 @@ namespace HarmonyHub
 
         void OnIq(object sender, IQ iq)
         {
-            if (iq.HasTag("oa"))
-            {
-                if (iq.InnerXml.Contains("errorcode=\"200\""))
-                {
-                    const string identityRegEx = "identity=([A-Z0-9]{8}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{12}):status";
-                    var regex = new Regex(identityRegEx, RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                    var match = regex.Match(iq.InnerXml);
-                    if (match.Success)
-                    {
-                        _sessionToken = match.Groups[1].ToString();
-                    }
+            if (!iq.HasTag("oa")) return;
+            var oaElement = iq.SelectSingleElement("oa");
+            // Keep receiving messages until we get a 200 status
+            // Activity commands send 100 (continue) until they finish
+            if (!"200".Equals(oaElement.GetAttribute("errorcode"))) return;
 
-                    Wait = false;
+            var data = oaElement.GetData();
+            foreach (var pair in data.Split(':'))
+            {
+                if (pair.StartsWith("identity"))
+                {
+                    _sessionToken = pair.Split('=')[1];
                 }
             }
+            Wait = false;
         }
     }
 }
