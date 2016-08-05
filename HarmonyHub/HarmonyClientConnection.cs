@@ -1,4 +1,5 @@
-﻿using agsXMPP;
+﻿using System.Diagnostics;
+using agsXMPP;
 using agsXMPP.Sasl;
 
 namespace HarmonyHub
@@ -24,12 +25,13 @@ namespace HarmonyHub
             OnSocketError += HarmonyClientConnection_OnSocketError;
         }
 
-        void HarmonyClientConnection_OnSocketError(object sender, System.Exception ex)
+        private void HarmonyClientConnection_OnSocketError(object sender, System.Exception ex)
         {
+            Debug.WriteLine(ex.Message);
             throw ex;
         }
 
-        static void HarmonyClientConnection_OnSaslStart(object sender, SaslEventArgs args)
+        private static void HarmonyClientConnection_OnSaslStart(object sender, SaslEventArgs args)
         {
             args.Auto = false;
             args.Mechanism = "PLAIN";

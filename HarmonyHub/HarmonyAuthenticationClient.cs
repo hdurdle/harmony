@@ -1,5 +1,6 @@
 ﻿using agsXMPP;
 using agsXMPP.protocol.client;
+using System.Threading.Tasks;
 
 namespace HarmonyHub
 {
@@ -8,12 +9,9 @@ namespace HarmonyHub
     /// </summary>
     public class HarmonyAuthenticationClient : HarmonyClient
     {
-        private string _sessionToken;
-
         public HarmonyAuthenticationClient(string ipAddress, int port)
             : base(ipAddress, port, "guest")
         {
-            Xmpp.OnIq += OnIq;
         }
 
         /// <summary>
@@ -21,37 +19,38 @@ namespace HarmonyHub
         /// </summary>
         /// <param name="userAuthToken"></param>
         /// <returns></returns>
-        public string SwapAuthToken(string userAuthToken)
+        public Task<string> SwapAuthToken(string userAuthToken)
         {
-            var iqToSend = new IQ {Type = IqType.get, Namespace = "", From = "1", To = "guest"};
+            var iqToSend = new IQ
+            {
+                Type = IqType.get,
+                Namespace = "",
+                From = "1",
+                To = "guest"
+            };
             iqToSend.AddChild(HarmonyDocuments.LogitechPairDocument(userAuthToken));
             iqToSend.GenerateId();
 
             var iqGrabber = new IqGrabber(Xmpp);
-            iqGrabber.SendIq(iqToSend, 10);
+            var taskCompletionSource = new TaskCompletionSource<string>();
 
-            WaitForData(5);
-
-            return _sessionToken;
-        }
-
-        void OnIq(object sender, IQ iq)
-        {
-            if (!iq.HasTag("oa")) return;
-            var oaElement = iq.SelectSingleElement("oa");
-            // Keep receiving messages until we get a 200 status
-            // Activity commands send 100 (continue) until they finish
-            if (!"200".Equals(oaElement.GetAttribute("errorcode"))) return;
-
-            var data = oaElement.GetData();
-            foreach (var pair in data.Split(':'))
+            iqGrabber.SendIq(iqToSend, (sender, iq, data) =>
             {
-                if (pair.StartsWith("identity"))
+                var sessionData = GetData(iq);
+                if (sessionData != null)
                 {
-                    _sessionToken = pair.Split('=')[1];
+                    foreach (var pair in sessionData.Split(':'))
+                    {
+                        if (pair.StartsWith("identity"))
+                        {
+                            var sessionToken = pair.Split('=')[1];
+                            taskCompletionSource.TrySetResult(sessionToken);
+                        }
+                    }
                 }
-            }
-            Wait = false;
+            });
+
+            return taskCompletionSource.Task;
         }
     }
 }

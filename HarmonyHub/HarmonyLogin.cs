@@ -1,13 +1,14 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
 namespace HarmonyHub
 {
     public class HarmonyLogin
     {
-        public static string LoginToLogitech(string email, string password, string ipAddress, int harmonyPort)
+        public static async Task<string> LoginToLogitechAsync(string email, string password, string ipAddress, int harmonyPort)
         {
             string userAuthToken = GetUserAuthToken(email, password);
             if (string.IsNullOrEmpty(userAuthToken))
@@ -18,8 +19,10 @@ namespace HarmonyHub
             File.WriteAllText("UserAuthToken", userAuthToken);
 
             var authentication = new HarmonyAuthenticationClient(ipAddress, harmonyPort);
+            // Wait for login
+            await authentication.LoginAsync().ConfigureAwait(false);
 
-            string sessionToken = authentication.SwapAuthToken(userAuthToken);
+            string sessionToken = await authentication.SwapAuthToken(userAuthToken).ConfigureAwait(false);
             if (string.IsNullOrEmpty(sessionToken))
             {
                 throw new Exception("Could not swap token on Harmony Hub.");
@@ -27,9 +30,9 @@ namespace HarmonyHub
 
             File.WriteAllText("SessionToken", sessionToken);
 
-            //Console.WriteLine("Date Time : {0}", DateTime.Now);
-            //Console.WriteLine("User Token: {0}", userAuthToken);
-            //Console.WriteLine("Sess Token: {0}", sessionToken);
+            Console.WriteLine("Date Time : {0}", DateTime.Now);
+            Console.WriteLine("User Token: {0}", userAuthToken);
+            Console.WriteLine("Sess Token: {0}", sessionToken);
 
             return sessionToken;
         }

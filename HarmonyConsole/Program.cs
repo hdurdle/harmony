@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using CommandLine;
 using HarmonyHub;
@@ -10,9 +11,15 @@ namespace HarmonyConsole
 {
     public class Program
     {
+        private const int HarmonyPort = 5222;
+
         public static void Main(string[] args)
         {
-            const int harmonyPort = 5222;
+            Task.Run(async () => await MainAsync(args)).Wait();
+        }
+
+        public static async Task MainAsync(string[] args)
+        {
             var options = new Options();
             if (!Parser.Default.ParseArguments(args, options))
             {
@@ -36,7 +43,7 @@ namespace HarmonyConsole
             }
             else
             {
-                sessionToken = LoginToLogitech(username, password, ipAddress, harmonyPort);
+                sessionToken = await HarmonyLogin.LoginToLogitechAsync(username, password, ipAddress, HarmonyPort).ConfigureAwait(false);
             }
 
             // do we need to grab the config first?
@@ -46,21 +53,19 @@ namespace HarmonyConsole
 
             if (!string.IsNullOrEmpty(deviceId) || options.GetActivity || !string.IsNullOrEmpty(options.ListType))
             {
-                client = new HarmonyClient(ipAddress, harmonyPort, sessionToken);
-                client.GetConfig();
-
-                while (string.IsNullOrEmpty(client.Config))
-                {
-                }
-                File.WriteAllText("HubConfig", client.Config);
-                harmonyConfig = new JavaScriptSerializer().Deserialize<HarmonyConfigResult>(client.Config);
+                client = new HarmonyClient(ipAddress, HarmonyPort, sessionToken);
+                await client.LoginAsync().ConfigureAwait(false);
+                var config = await client.GetConfigAsync().ConfigureAwait(false);
+                File.WriteAllText("HubConfig", config);
+                harmonyConfig = new JavaScriptSerializer().Deserialize<HarmonyConfigResult>(config);
             }
 
             if (!string.IsNullOrEmpty(deviceId) && !string.IsNullOrEmpty(options.Command))
             {
                 if (null == client)
                 {
-                    client = new HarmonyClient(ipAddress, harmonyPort, sessionToken);
+                    client = new HarmonyClient(ipAddress, HarmonyPort, sessionToken);
+                    await client.LoginAsync().ConfigureAwait(false);
                 }
                 //activityClient.PressButton("14766260", "Mute");
                 client.PressButton(deviceId, options.Command);
@@ -85,28 +90,26 @@ namespace HarmonyConsole
             {
                 if (null == client)
                 {
-                    client = new HarmonyClient(ipAddress, harmonyPort, sessionToken);
+                    client = new HarmonyClient(ipAddress, HarmonyPort, sessionToken);
+                    await client.LoginAsync().ConfigureAwait(false);
                 }
-                client.StartActivity(activityId);
+                await client.StartActivityAsync(activityId).ConfigureAwait(false);
             }
 
             if (null != harmonyConfig && options.GetActivity)
             {
-                client.GetCurrentActivity();
-                // now wait for it to be populated
-                while (string.IsNullOrEmpty(client.CurrentActivity))
-                {
-                }
-                Console.WriteLine("Current Activity: {0}", harmonyConfig.ActivityNameFromId(client.CurrentActivity));
+                var currentActivity = await client.GetCurrentActivityAsync().ConfigureAwait(false);
+                Console.WriteLine("Current Activity: {0}", harmonyConfig.ActivityNameFromId(currentActivity));
             }
 
             if (options.TurnOff)
             {
                 if (null == client)
                 {
-                    client = new HarmonyClient(ipAddress, harmonyPort, sessionToken);
+                    client = new HarmonyClient(ipAddress, HarmonyPort, sessionToken);
+                    await client.LoginAsync().ConfigureAwait(false);
                 }
-                client.TurnOff();
+                await client.TurnOffAsync().ConfigureAwait(false);
             }
 
             if (null != harmonyConfig && !string.IsNullOrEmpty(options.ListType))
@@ -133,33 +136,6 @@ namespace HarmonyConsole
                     }
                 }
             }
-        }
-
-        public static string LoginToLogitech(string email, string password, string ipAddress, int harmonyPort)
-        {
-            string userAuthToken = HarmonyLogin.GetUserAuthToken(email, password);
-            if (string.IsNullOrEmpty(userAuthToken))
-            {
-                throw new Exception("Could not get token from Logitech server.");
-            }
-
-            File.WriteAllText("UserAuthToken", userAuthToken);
-
-            var authentication = new HarmonyAuthenticationClient(ipAddress, harmonyPort);
-
-            string sessionToken = authentication.SwapAuthToken(userAuthToken);
-            if (string.IsNullOrEmpty(sessionToken))
-            {
-                throw new Exception("Could not swap token on Harmony Hub.");
-            }
-
-            File.WriteAllText("SessionToken", sessionToken);
-
-            Console.WriteLine("Date Time : {0}", DateTime.Now);
-            Console.WriteLine("User Token: {0}", userAuthToken);
-            Console.WriteLine("Sess Token: {0}", sessionToken);
-
-            return sessionToken;
         }
     }
 }
