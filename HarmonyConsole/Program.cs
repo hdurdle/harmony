@@ -25,9 +25,7 @@ namespace HarmonyConsole
             {
                 return;
             }
-            Console.WriteLine();
 
-            string ipAddress = options.IpAddress;
             string username = options.Username;
             string password = options.Password;
 
@@ -43,7 +41,7 @@ namespace HarmonyConsole
             }
             else
             {
-                sessionToken = await HarmonyLogin.LoginToLogitechAsync(username, password, ipAddress, HarmonyPort).ConfigureAwait(false);
+                sessionToken = await HarmonyLogin.LoginToLogitechAsync(username, password, options.IpAddress, HarmonyPort).ConfigureAwait(false);
             }
 
             // do we need to grab the config first?
@@ -53,8 +51,7 @@ namespace HarmonyConsole
 
             if (!string.IsNullOrEmpty(deviceId) || options.GetActivity || !string.IsNullOrEmpty(options.ListType))
             {
-                client = new HarmonyClient(ipAddress, HarmonyPort, sessionToken);
-                await client.LoginAsync().ConfigureAwait(false);
+                client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
                 var config = await client.GetConfigAsync().ConfigureAwait(false);
                 File.WriteAllText("HubConfig", config);
                 harmonyConfig = new JavaScriptSerializer().Deserialize<HarmonyConfigResult>(config);
@@ -64,11 +61,10 @@ namespace HarmonyConsole
             {
                 if (null == client)
                 {
-                    client = new HarmonyClient(ipAddress, HarmonyPort, sessionToken);
-                    await client.LoginAsync().ConfigureAwait(false);
+                    client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
                 }
-                //activityClient.PressButton("14766260", "Mute");
-                client.PressButton(deviceId, options.Command);
+                //activityClient.PressButtonAsync("14766260", "Mute");
+                await client.PressButtonAsync(deviceId, options.Command);
             }
 
             if (null != harmonyConfig && !string.IsNullOrEmpty(deviceId) && string.IsNullOrEmpty(options.Command))
@@ -90,8 +86,7 @@ namespace HarmonyConsole
             {
                 if (null == client)
                 {
-                    client = new HarmonyClient(ipAddress, HarmonyPort, sessionToken);
-                    await client.LoginAsync().ConfigureAwait(false);
+                    client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
                 }
                 await client.StartActivityAsync(activityId).ConfigureAwait(false);
             }
@@ -106,8 +101,7 @@ namespace HarmonyConsole
             {
                 if (null == client)
                 {
-                    client = new HarmonyClient(ipAddress, HarmonyPort, sessionToken);
-                    await client.LoginAsync().ConfigureAwait(false);
+                    client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
                 }
                 await client.TurnOffAsync().ConfigureAwait(false);
             }

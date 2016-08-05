@@ -3,17 +3,18 @@ using agsXMPP.Xml.Dom;
 
 namespace HarmonyHub
 {
-    internal class HarmonyDocuments
+	public class HarmonyDocument : Document
+	{
+		public HarmonyDocument()
+		{
+			Namespace = Namespace;
+		}
+	}
+
+	internal class HarmonyDocuments
     {
         private const string Namespace = "connect.logitech.com";
 
-        public class HarmonyDocument : Document
-        {
-            public HarmonyDocument()
-            {
-                Namespace = Namespace;
-            }
-        }
 
         private static Element CreateOaElement(string command)
         {

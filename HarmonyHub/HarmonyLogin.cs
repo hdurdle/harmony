@@ -18,21 +18,23 @@ namespace HarmonyHub
 
             File.WriteAllText("UserAuthToken", userAuthToken);
 
-            var authentication = new HarmonyAuthenticationClient(ipAddress, harmonyPort);
-            // Wait for login
-            await authentication.LoginAsync().ConfigureAwait(false);
+	        string sessionToken;
 
-            string sessionToken = await authentication.SwapAuthToken(userAuthToken).ConfigureAwait(false);
-            if (string.IsNullOrEmpty(sessionToken))
+			using (var client = new HarmonyClient(ipAddress, harmonyPort, "guest"))
+	        {
+				sessionToken = await client.SwapAuthToken(userAuthToken).ConfigureAwait(false);
+			}
+
+			if (string.IsNullOrEmpty(sessionToken))
             {
                 throw new Exception("Could not swap token on Harmony Hub.");
             }
 
             File.WriteAllText("SessionToken", sessionToken);
 
-            Console.WriteLine("Date Time : {0}", DateTime.Now);
-            Console.WriteLine("User Token: {0}", userAuthToken);
-            Console.WriteLine("Sess Token: {0}", sessionToken);
+	        Console.WriteLine($"Date Time : {DateTime.Now}");
+	        Console.WriteLine($"User Token: {userAuthToken}");
+	        Console.WriteLine($"Sess Token: {sessionToken}");
 
             return sessionToken;
         }

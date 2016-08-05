@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using agsXMPP;
@@ -9,10 +11,10 @@ namespace HarmonyHub
     /// <summary>
     /// Client to interrogate and control Logitech Harmony Hub.
     /// </summary>
-    public class HarmonyClient
+    public class HarmonyClient : IDisposable
     {
-        protected HarmonyClientConnection Xmpp { get; set; }
-
+	    private readonly HarmonyClientConnection _xmpp;
+		private readonly IDictionary<string, TaskCompletionSource<IQ>> _resultTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<IQ>>();
         private readonly TaskCompletionSource<bool> _loginTaskCompletionSource = new TaskCompletionSource<bool>();
 
         /// <summary>
@@ -23,13 +25,81 @@ namespace HarmonyHub
         /// <param name="token"></param>
         public HarmonyClient(string ipAddress, int port, string token)
         {
-            Xmpp = new HarmonyClientConnection(ipAddress, port);
-            Xmpp.OnLogin += sender => {
-                _loginTaskCompletionSource.TrySetResult(true);
-            };
-            Xmpp.OnSocketError += HandleLoginError;
-            Xmpp.Open($"{token}@x.com", token);
+            _xmpp = new HarmonyClientConnection(ipAddress, port);
+	        _xmpp.OnLogin += OnLogin;
+	        _xmpp.OnIq += OnIqResponse;
+            _xmpp.OnSocketError += HandleLoginError;
+            _xmpp.Open($"{token}@x.com", token);
         }
+
+		/// <summary>
+		/// Sennd a document, await the response and return it
+		/// </summary>
+		/// <param name="document"></param>
+		/// <returns>IQ response</returns>
+	    private async Task<IQ> RequestResponseAsync(HarmonyDocument document)
+	    {
+			await _loginTaskCompletionSource.Task.ConfigureAwait(false);
+			var iqToSend = new IQ
+			{
+				Type = IqType.get,
+				Namespace = "",
+				From = "1",
+				To = "guest"
+			};
+
+			iqToSend.AddChild(document);
+			iqToSend.GenerateId();
+
+			var iqGrabber = new IqGrabber(_xmpp);
+			var resultTaskCompletionSource = new TaskCompletionSource<IQ>();
+
+			Debug.WriteLine("Storing callback for " + iqToSend.Id);
+		    _resultTaskCompletionSources[iqToSend.Id] = resultTaskCompletionSource;
+		    iqGrabber.SendIq(iqToSend, 1000);
+			return await resultTaskCompletionSource.Task.ConfigureAwait(false);
+	    }
+
+		/// <summary>
+		/// Handle login by completing the _loginTaskCompletionSource
+		/// </summary>
+		/// <param name="sender"></param>
+		private void OnLogin(object sender)
+	    {
+			Debug.WriteLine("Login success.");
+			_loginTaskCompletionSource.TrySetResult(true);
+		}
+
+		/// <summary>
+		/// Lookup the TaskCompletionSource for the IQ message and try to set the result.
+		/// </summary>
+		/// <param name="sender">object</param>
+		/// <param name="iq">IQ</param>
+		private void OnIqResponse(object sender, IQ iq)
+	    {
+			Debug.WriteLine("Received event " + iq.Id);
+			TaskCompletionSource<IQ> resulTaskCompletionSource;
+			if (iq.Id != null && _resultTaskCompletionSources.TryGetValue(iq.Id, out resulTaskCompletionSource))
+			{
+				_resultTaskCompletionSources.Remove(iq.Id);
+				resulTaskCompletionSource.TrySetResult(iq);
+			}
+			else
+			{
+				Debug.WriteLine("No result task found.");
+			}
+	    }
+
+		/// <summary>
+		/// Cleanup and close
+		/// </summary>
+		public void Dispose()
+	    {
+			_xmpp.OnIq -= OnIqResponse;
+			_xmpp.OnLogin -= OnLogin;
+			_xmpp.OnSocketError -= HandleLoginError;
+		    _xmpp.Close();
+	    }
 
         /// <summary>
         /// Help with login errors
@@ -42,110 +112,75 @@ namespace HarmonyHub
             _loginTaskCompletionSource.TrySetException(ex);
         }
 
-        /// <summary>
-        /// This return the login task, and d
-        /// </summary>
-        /// <returns></returns>
-        public Task<bool> LoginAsync()
+		#region Authentication
+		/// <summary>
+		/// Send message to HarmonyHub with UserAuthToken, wait for SessionToken
+		/// </summary>
+		/// <param name="userAuthToken"></param>
+		/// <returns></returns>
+		public async Task<string> SwapAuthToken(string userAuthToken)
+		{
+			var iq = await RequestResponseAsync(HarmonyDocuments.LogitechPairDocument(userAuthToken));
+			var sessionData = GetData(iq);
+			if (sessionData != null)
+			{
+				foreach (var pair in sessionData.Split(':'))
+				{
+					if (pair.StartsWith("identity"))
+					{
+						return pair.Split('=')[1];
+					}
+				}
+			}
+			throw new Exception("Wrong data");
+		}
+		#endregion
+
+
+		#region Send Messages to HarmonyHub
+
+		/// <summary>
+		/// Send message to HarmonyHub to request Configuration.
+		/// Result is parsed by OnIq based on ClientCommandType
+		/// </summary>
+		public async Task<string> GetConfigAsync()
         {
-            return _loginTaskCompletionSource.Task;
-        }
+            var iq = await RequestResponseAsync(HarmonyDocuments.ConfigDocument());
+			var config = GetData(iq);
+            if (config != null)
+            {
+				return config;
+            }
+			throw new Exception("Wrong data");
+		}
 
-        #region Send Messages to HarmonyHub
-
-        /// <summary>
-        /// Send message to HarmonyHub to request Configuration.
-        /// Result is parsed by OnIq based on ClientCommandType
-        /// </summary>
-        public Task<string> GetConfigAsync()
+		/// <summary>
+		/// Send message to HarmonyHub to start a given activity
+		/// Result is parsed by OnIq based on ClientCommandType
+		/// </summary>
+		/// <param name="activityId"></param>
+		public async Task StartActivityAsync(string activityId)
         {
-            var iqToSend = new IQ
-            {
-                Type = IqType.get,
-                Namespace = "",
-                From = "1",
-                To = "guest"
-            };
-
-            iqToSend.AddChild(HarmonyDocuments.ConfigDocument());
-            iqToSend.GenerateId();
-
-            // Create a TaskCompletionSource to supply the result to the caller
-            var configTaskCompletionSource = new TaskCompletionSource<string>();
-            var iqGrabber = new IqGrabber(Xmpp);
-            iqGrabber.SendIq(iqToSend, (sender, iq, data) =>
-            {
-                var config = GetData(iq);
-                if (config != null)
-                {
-                    configTaskCompletionSource.TrySetResult(config);
-                }
-            });
-            return configTaskCompletionSource.Task;
-        }
-
-        /// <summary>
-        /// Send message to HarmonyHub to start a given activity
-        /// Result is parsed by OnIq based on ClientCommandType
-        /// </summary>
-        /// <param name="activityId"></param>
-        public Task StartActivityAsync(string activityId)
-        {
-            var iqToSend = new IQ
-            {
-                Type = IqType.get,
-                Namespace = "",
-                From = "1",
-                To = "guest"
-            };
-            iqToSend.AddChild(HarmonyDocuments.StartActivityDocument(activityId));
-            iqToSend.GenerateId();
-
-            var startActivityTaskCompletionSource = new TaskCompletionSource<bool>();
-
-            var iqGrabber = new IqGrabber(Xmpp);
-            iqGrabber.SendIq(iqToSend, (sender, iq, data) =>
-            {
-                if (iq.Error != null)
-                {
-                    startActivityTaskCompletionSource.TrySetException(new Exception(iq.Error.ErrorText));
-                }
-                else
-                {
-                    startActivityTaskCompletionSource.TrySetResult(true);
-                }
-            });
-            return startActivityTaskCompletionSource.Task;
+			var iq = await RequestResponseAsync(HarmonyDocuments.StartActivityDocument(activityId));
+			if (iq.Error != null)
+			{
+				throw new Exception(iq.Error.ErrorText);
+			}
         }
 
         /// <summary>
         /// Send message to HarmonyHub to request current activity
         /// Result is parsed by OnIq based on ClientCommandType
         /// </summary>
-        public Task<string> GetCurrentActivityAsync()
+        public async Task<string> GetCurrentActivityAsync()
         {
-            var iqToSend = new IQ
-            {
-                Type = IqType.get,
-                Namespace = "",
-                From = "1",
-                To = "guest"
-            };
-            iqToSend.AddChild(HarmonyDocuments.GetCurrentActivityDocument());
-            iqToSend.GenerateId();
-
-            var startActivityTaskCompletionSource = new TaskCompletionSource<string>();
-            var iqGrabber = new IqGrabber(Xmpp);
-            iqGrabber.SendIq(iqToSend, (sender, iq, data) =>
-            {
-                var currentActivityData = GetData(iq);
-                if (currentActivityData != null)
-                {
-                    var currentActivity = currentActivityData.Split('=')[1];
-                    startActivityTaskCompletionSource.TrySetResult(currentActivity);
-                }
-            });
-            return startActivityTaskCompletionSource.Task;
+			var iq = await RequestResponseAsync(HarmonyDocuments.GetCurrentActivityDocument());
+			var currentActivityData = GetData(iq);
+			if (currentActivityData != null)
+			{
+				return currentActivityData.Split('=')[1];
+			}
+			throw new Exception("Wrong data");
         }
 
         /// <summary>
@@ -154,26 +189,20 @@ namespace HarmonyHub
         /// </summary>
         /// <param name="deviceId"></param>
         /// <param name="command"></param>
-        public void PressButton(string deviceId, string command)
+        public async Task PressButtonAsync(string deviceId, string command)
         {
-            var iqToSend = new IQ
-            {
-                Type = IqType.get,
-                Namespace = "",
-                From = "1",
-                To = "guest"
-            };
-            iqToSend.AddChild(HarmonyDocuments.IrCommandDocument(deviceId, command));
-            iqToSend.GenerateId();
+			var iq = await RequestResponseAsync(HarmonyDocuments.IrCommandDocument(deviceId, command));
+			if (iq.Error != null)
+			{
+				throw new Exception(iq.Error.ErrorText);
+			}
+			throw new Exception("Wrong data");
+		}
 
-            var iqGrabber = new IqGrabber(Xmpp);
-            iqGrabber.SendIq(iqToSend, 5);
-        }
-
-        /// <summary>
-        /// Send message to HarmonyHub to request to turn off all devices
-        /// </summary>
-        public async Task TurnOffAsync()
+		/// <summary>
+		/// Send message to HarmonyHub to request to turn off all devices
+		/// </summary>
+		public async Task TurnOffAsync()
         {
             var currentActivity = await GetCurrentActivityAsync().ConfigureAwait(false);
             if (currentActivity != "-1")
@@ -191,7 +220,8 @@ namespace HarmonyHub
         /// <returns></returns>
         protected string GetData(IQ iq)
         {
-            if (iq.HasTag("oa"))
+			Debug.WriteLine("GetData: Called " + iq.Id);
+			if (iq.HasTag("oa"))
             {
                 var oaElement = iq.SelectSingleElement("oa");
                 // Keep receiving messages until we get a 200 status

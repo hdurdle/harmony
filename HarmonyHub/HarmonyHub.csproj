@@ -49,7 +49,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GetUserAuthTokenResult.cs" />
-    <Compile Include="HarmonyAuthenticationClient.cs" />
     <Compile Include="HarmonyClient.cs" />
     <Compile Include="HarmonyClientConnection.cs" />
     <Compile Include="HarmonyConfigResult.cs" />
