@@ -1,17 +1,10 @@
 ﻿using System.Web.Script.Serialization;
 using agsXMPP.Xml.Dom;
+using HarmonyHub.Entities;
 
 namespace HarmonyHub
 {
-	public class HarmonyDocument : Document
-	{
-		public HarmonyDocument()
-		{
-			Namespace = Namespace;
-		}
-	}
-
-	internal class HarmonyDocuments
+    internal class HarmonyDocuments
     {
         private const string Namespace = "connect.logitech.com";
 
@@ -45,7 +38,12 @@ namespace HarmonyHub
         {
             var document = new HarmonyDocument();
 
-            var action = new HarmonyAction {type = "IRCommand", deviceId = deviceId, command = command};
+            var action = new HarmonyAction
+            {
+                Type = "IRCommand",
+                DeviceId = deviceId,
+                Command = command
+            };
             var json = new JavaScriptSerializer().Serialize(action);
 
             // At this point our valid json won't work - we need to break it so it looks like:
@@ -53,6 +51,7 @@ namespace HarmonyHub
             // note double colons 
 
             json = json.Replace(":", "::");
+
             var element = CreateOaElement("holdAction");
 
             element.Value = $"action={json}:status=press";

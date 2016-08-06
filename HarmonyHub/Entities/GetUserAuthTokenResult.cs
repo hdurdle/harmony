@@ -1,4 +1,4 @@
-﻿namespace HarmonyHub
+﻿namespace HarmonyHub.Entities
 {
     /// <summary>
     /// Result of call to myharmony.com web service. Contains UserAuthToken.
@@ -8,10 +8,5 @@
     {
         public int AccountId { get; set; }
         public string UserAuthToken { get; set; }
-    }
-
-    public class GetUserAuthTokenResultRootObject
-    {
-        public GetUserAuthTokenResult GetUserAuthTokenResult { get; set; }
     }
 }

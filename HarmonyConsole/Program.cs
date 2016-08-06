@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Web.Script.Serialization;
 using CommandLine;
 using HarmonyHub;
+using HarmonyHub.Entities;
 
 namespace HarmonyConsole
 {
@@ -26,12 +26,6 @@ namespace HarmonyConsole
                 return;
             }
 
-            string username = options.Username;
-            string password = options.Password;
-
-            string deviceId = options.DeviceId;
-            string activityId = options.ActivityId;
-
             string sessionToken;
 
             if (File.Exists("SessionToken"))
@@ -41,7 +35,7 @@ namespace HarmonyConsole
             }
             else
             {
-                sessionToken = await HarmonyLogin.LoginToLogitechAsync(username, password, options.IpAddress, HarmonyPort).ConfigureAwait(false);
+                sessionToken = await HarmonyLogin.LoginToLogitechAsync(options.Username, options.Password, options.IpAddress, HarmonyPort);
             }
 
             // do we need to grab the config first?
@@ -49,12 +43,12 @@ namespace HarmonyConsole
 
             HarmonyClient client = null;
 
+            string deviceId = options.DeviceId;
+            string activityId = options.ActivityId;
             if (!string.IsNullOrEmpty(deviceId) || options.GetActivity || !string.IsNullOrEmpty(options.ListType))
             {
                 client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
-                var config = await client.GetConfigAsync().ConfigureAwait(false);
-                File.WriteAllText("HubConfig", config);
-                harmonyConfig = new JavaScriptSerializer().Deserialize<HarmonyConfigResult>(config);
+                harmonyConfig = await client.GetConfigAsync();
             }
 
             if (!string.IsNullOrEmpty(deviceId) && !string.IsNullOrEmpty(options.Command))
@@ -63,16 +57,15 @@ namespace HarmonyConsole
                 {
                     client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
                 }
-                //activityClient.PressButtonAsync("14766260", "Mute");
                 await client.PressButtonAsync(deviceId, options.Command);
             }
 
             if (null != harmonyConfig && !string.IsNullOrEmpty(deviceId) && string.IsNullOrEmpty(options.Command))
             {
                 // just list device control options
-                foreach (var device in harmonyConfig.device.Where(device => device.id == deviceId))
+                foreach (var device in harmonyConfig.Device.Where(device => device.Id == deviceId))
                 {
-                    foreach (Dictionary<string, object> controlGroup in device.controlGroup)
+                    foreach (Dictionary<string, object> controlGroup in device.ControlGroup)
                     {
                         foreach (var o in controlGroup.Where(o => o.Key == "name"))
                         {
@@ -88,12 +81,12 @@ namespace HarmonyConsole
                 {
                     client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
                 }
-                await client.StartActivityAsync(activityId).ConfigureAwait(false);
+                await client.StartActivityAsync(activityId);
             }
 
             if (null != harmonyConfig && options.GetActivity)
             {
-                var currentActivity = await client.GetCurrentActivityAsync().ConfigureAwait(false);
+                var currentActivity = await client.GetCurrentActivityAsync();
                 Console.WriteLine("Current Activity: {0}", harmonyConfig.ActivityNameFromId(currentActivity));
             }
 
@@ -103,7 +96,7 @@ namespace HarmonyConsole
                 {
                     client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
                 }
-                await client.TurnOffAsync().ConfigureAwait(false);
+                await client.TurnOffAsync();
             }
 
             if (null != harmonyConfig && !string.IsNullOrEmpty(options.ListType))
@@ -113,20 +106,18 @@ namespace HarmonyConsole
                 if (options.ListType.Equals("a"))
                 {
                     Console.WriteLine("Activities:");
-                    harmonyConfig.activity.Sort();
-                    foreach (var activity in harmonyConfig.activity)
+                    foreach (var activity in harmonyConfig.Activity.OrderBy(x => x.ActivityOrder))
                     {
-                        Console.WriteLine(" {0}:{1}", activity.id, activity.label);
+                        Console.WriteLine(" {0}:{1}", activity.Id, activity.Label);
                     }
                 }
 
                 if (options.ListType.Equals("d"))
                 {
                     Console.WriteLine("Devices:");
-                    harmonyConfig.device.Sort();
-                    foreach (var device in harmonyConfig.device)
+                    foreach (var device in harmonyConfig.Device.OrderBy(x => x.Label))
                     {
-                        Console.WriteLine($" {device.id}:{device.label}");
+                        Console.WriteLine($" {device.Id}:{device.Label}");
                     }
                 }
             }

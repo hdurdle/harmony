@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
+using HarmonyHub.Entities;
 
 namespace HarmonyHub
 {
@@ -18,23 +19,23 @@ namespace HarmonyHub
 
             File.WriteAllText("UserAuthToken", userAuthToken);
 
-	        string sessionToken;
+            string sessionToken;
 
-			using (var client = new HarmonyClient(ipAddress, harmonyPort, "guest"))
-	        {
-				sessionToken = await client.SwapAuthToken(userAuthToken).ConfigureAwait(false);
-			}
+            using (var client = new HarmonyClient(ipAddress, harmonyPort, "guest"))
+            {
+                sessionToken = await client.SwapAuthToken(userAuthToken).ConfigureAwait(false);
+            }
 
-			if (string.IsNullOrEmpty(sessionToken))
+            if (string.IsNullOrEmpty(sessionToken))
             {
                 throw new Exception("Could not swap token on Harmony Hub.");
             }
 
             File.WriteAllText("SessionToken", sessionToken);
 
-	        Console.WriteLine($"Date Time : {DateTime.Now}");
-	        Console.WriteLine($"User Token: {userAuthToken}");
-	        Console.WriteLine($"Sess Token: {sessionToken}");
+            Console.WriteLine($"Date Time : {DateTime.Now}");
+            Console.WriteLine($"User Token: {userAuthToken}");
+            Console.WriteLine($"Sess Token: {sessionToken}");
 
             return sessionToken;
         }
