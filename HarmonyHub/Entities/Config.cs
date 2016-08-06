@@ -8,7 +8,7 @@ namespace HarmonyHub.Entities
     /// Logitech HarmonyHub Configuration
     /// </summary>
     [DataContract]
-    public class HarmonyConfigResult
+    public class Config
     {
         [DataMember(Name = "activity")]
         public IList<Activity> Activity { get; set; }

@@ -38,86 +38,73 @@ namespace HarmonyConsole
                 sessionToken = await HarmonyLogin.LoginToLogitechAsync(options.Username, options.Password, options.IpAddress, HarmonyPort);
             }
 
-            // do we need to grab the config first?
-            HarmonyConfigResult harmonyConfig = null;
-
-            HarmonyClient client = null;
-
-            string deviceId = options.DeviceId;
-            string activityId = options.ActivityId;
-            if (!string.IsNullOrEmpty(deviceId) || options.GetActivity || !string.IsNullOrEmpty(options.ListType))
+            using (var client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken))
             {
-                client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
-                harmonyConfig = await client.GetConfigAsync();
-            }
-
-            if (!string.IsNullOrEmpty(deviceId) && !string.IsNullOrEmpty(options.Command))
-            {
-                if (null == client)
+                string deviceId = options.DeviceId;
+                string activityId = options.ActivityId;
+                // do we need to grab the config first?
+                Config harmonyConfig = null;
+                if (!string.IsNullOrEmpty(deviceId) || options.GetActivity || !string.IsNullOrEmpty(options.ListType))
                 {
-                    client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
+                    harmonyConfig = await client.GetConfigAsync();
                 }
-                await client.PressButtonAsync(deviceId, options.Command);
-            }
 
-            if (null != harmonyConfig && !string.IsNullOrEmpty(deviceId) && string.IsNullOrEmpty(options.Command))
-            {
-                // just list device control options
-                foreach (var device in harmonyConfig.Device.Where(device => device.Id == deviceId))
+                if (!string.IsNullOrEmpty(deviceId) && !string.IsNullOrEmpty(options.Command))
                 {
-                    foreach (Dictionary<string, object> controlGroup in device.ControlGroup)
+                    await client.PressButtonAsync(deviceId, options.Command);
+                }
+
+                if (null != harmonyConfig && !string.IsNullOrEmpty(deviceId) && string.IsNullOrEmpty(options.Command))
+                {
+                    // just list device control options
+                    foreach (var device in harmonyConfig.Device.Where(device => device.Id == deviceId))
                     {
-                        foreach (var o in controlGroup.Where(o => o.Key == "name"))
+                        foreach (Dictionary<string, object> controlGroup in device.ControlGroup)
                         {
-                            Console.WriteLine($"{o.Key}:{o.Value}");
+                            foreach (var o in controlGroup.Where(o => o.Key == "name"))
+                            {
+                                Console.WriteLine($"{o.Key}:{o.Value}");
+                            }
                         }
                     }
                 }
-            }
 
-            if (!string.IsNullOrEmpty(activityId))
-            {
-                if (null == client)
+                if (!string.IsNullOrEmpty(activityId))
                 {
-                    client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
+                    await client.StartActivityAsync(activityId);
                 }
-                await client.StartActivityAsync(activityId);
-            }
 
-            if (null != harmonyConfig && options.GetActivity)
-            {
-                var currentActivity = await client.GetCurrentActivityAsync();
-                Console.WriteLine("Current Activity: {0}", harmonyConfig.ActivityNameFromId(currentActivity));
-            }
-
-            if (options.TurnOff)
-            {
-                if (null == client)
+                if (null != harmonyConfig && options.GetActivity)
                 {
-                    client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken);
+                    var currentActivity = await client.GetCurrentActivityAsync();
+                    Console.WriteLine("Current Activity: {0}", harmonyConfig.ActivityNameFromId(currentActivity));
                 }
-                await client.TurnOffAsync();
-            }
 
-            if (null != harmonyConfig && !string.IsNullOrEmpty(options.ListType))
-            {
-                if (!options.ListType.Equals("d") && !options.ListType.Equals("a")) return;
-
-                if (options.ListType.Equals("a"))
+                if (options.TurnOff)
                 {
-                    Console.WriteLine("Activities:");
-                    foreach (var activity in harmonyConfig.Activity.OrderBy(x => x.ActivityOrder))
+                    await client.TurnOffAsync();
+                }
+
+                if (null != harmonyConfig && !string.IsNullOrEmpty(options.ListType))
+                {
+                    if (!options.ListType.Equals("d") && !options.ListType.Equals("a")) return;
+
+                    if (options.ListType.Equals("a"))
                     {
-                        Console.WriteLine(" {0}:{1}", activity.Id, activity.Label);
+                        Console.WriteLine("Activities:");
+                        foreach (var activity in harmonyConfig.Activity.OrderBy(x => x.ActivityOrder))
+                        {
+                            Console.WriteLine(" {0}:{1}", activity.Id, activity.Label);
+                        }
                     }
-                }
 
-                if (options.ListType.Equals("d"))
-                {
-                    Console.WriteLine("Devices:");
-                    foreach (var device in harmonyConfig.Device.OrderBy(x => x.Label))
+                    if (options.ListType.Equals("d"))
                     {
-                        Console.WriteLine($" {device.Id}:{device.Label}");
+                        Console.WriteLine("Devices:");
+                        foreach (var device in harmonyConfig.Device.OrderBy(x => x.Label))
+                        {
+                            Console.WriteLine($" {device.Id}:{device.Label}");
+                        }
                     }
                 }
             }

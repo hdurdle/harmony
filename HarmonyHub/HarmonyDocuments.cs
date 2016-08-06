@@ -17,9 +17,12 @@ namespace HarmonyHub
             return element;
         }
 
-        public static HarmonyDocument StartActivityDocument(string activityId)
+        public static Document StartActivityDocument(string activityId)
         {
-            var document = new HarmonyDocument();
+            var document = new Document
+            {
+                Namespace = Namespace
+            };
 
             var element = CreateOaElement("startactivity");
             element.Value = $"activityId={activityId}:timestamp=0";
@@ -27,16 +30,22 @@ namespace HarmonyHub
             return document;
         }
 
-        public static HarmonyDocument GetCurrentActivityDocument()
+        public static Document GetCurrentActivityDocument()
         {
-            var document = new HarmonyDocument();
+            var document = new Document
+            {
+                Namespace = Namespace
+            };
             document.AddChild(CreateOaElement("getCurrentActivity"));
             return document;
         }
 
-        public static HarmonyDocument IrCommandDocument(string deviceId, string command)
+        public static Document IrCommandDocument(string deviceId, string command)
         {
-            var document = new HarmonyDocument();
+            var document = new Document
+            {
+                Namespace = Namespace
+            };
 
             var action = new HarmonyAction
             {
@@ -61,16 +70,22 @@ namespace HarmonyHub
             return document;
         }
 
-        public static HarmonyDocument ConfigDocument()
+        public static Document ConfigDocument()
         {
-            var document = new HarmonyDocument();
+            var document = new Document
+            {
+                Namespace = Namespace
+            };
             document.AddChild(CreateOaElement("config"));
             return document;
         }
 
-        public static HarmonyDocument LogitechPairDocument(string token)
+        public static Document LogitechPairDocument(string token)
         {
-            var document = new HarmonyDocument();
+            var document = new Document
+            {
+                Namespace = Namespace
+            };
 
             var element = new Element("oa");
             element.Attributes.Add("xmlns", "connect.logitech.com");

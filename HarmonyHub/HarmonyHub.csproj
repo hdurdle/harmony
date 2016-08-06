@@ -57,9 +57,7 @@
     <Compile Include="Entities\Global.cs" />
     <Compile Include="Entities\HarmonyAction.cs" />
     <Compile Include="HarmonyClient.cs" />
-    <Compile Include="HarmonyClientConnection.cs" />
-    <Compile Include="Entities\HarmonyConfigResult.cs" />
-    <Compile Include="HarmonyDocument.cs" />
+    <Compile Include="Entities\Config.cs" />
     <Compile Include="HarmonyDocuments.cs" />
     <Compile Include="HarmonyLogin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

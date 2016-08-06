@@ -17,8 +17,6 @@ namespace HarmonyHub
                 throw new Exception("Could not get token from Logitech server.");
             }
 
-            File.WriteAllText("UserAuthToken", userAuthToken);
-
             string sessionToken;
 
             using (var client = new HarmonyClient(ipAddress, harmonyPort, "guest"))
