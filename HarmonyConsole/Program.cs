@@ -11,8 +11,6 @@ namespace HarmonyConsole
 {
     public class Program
     {
-        private const int HarmonyPort = 5222;
-
         public static void Main(string[] args)
         {
             Task.Run(async () => await MainAsync(args)).Wait();
@@ -26,19 +24,20 @@ namespace HarmonyConsole
                 return;
             }
 
-            string sessionToken;
-
+            HarmonyClient client;
             if (File.Exists("SessionToken"))
             {
-                sessionToken = File.ReadAllText("SessionToken");
+                var sessionToken = File.ReadAllText("SessionToken");
                 Console.WriteLine("Reusing token: {0}", sessionToken);
+                client = HarmonyClient.Create(options.IpAddress, sessionToken);
             }
             else
             {
-                sessionToken = await HarmonyLogin.LoginToLogitechAsync(options.Username, options.Password, options.IpAddress, HarmonyPort);
+                client = await HarmonyClient.Create(options.IpAddress, options.Username, options.Password);
+                File.WriteAllText("SessionToken", client.Token);
             }
 
-            using (var client = new HarmonyClient(options.IpAddress, HarmonyPort, sessionToken))
+            using (client)
             {
                 string deviceId = options.DeviceId;
                 string activityId = options.ActivityId;

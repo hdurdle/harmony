@@ -2,6 +2,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Net;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using agsXMPP;
@@ -31,14 +33,108 @@ namespace HarmonyHub
         private readonly TaskCompletionSource<bool> _loginTaskCompletionSource = new TaskCompletionSource<bool>();
 
         /// <summary>
+        /// Create a HarmonyClient with pre-authenticated token
+        /// </summary>
+        /// <param name="host">IP or hostname</param>
+        /// <param name="token">token</param>
+        /// <param name="port">Port to connect to, 5222 is the default</param>
+        /// <returns></returns>
+        public static HarmonyClient Create(string host, string token, int port = 5222)
+        {
+            return new HarmonyClient(host, token, port);
+        }
+
+        /// <summary>
+        /// Create a harmony client via myharmony.com authenification
+        /// </summary>
+        /// <param name="host">IP or hostname</param>
+        /// <param name="username">myharmony.com username (email)</param>
+        /// <param name="password">myharmony.com password</param>
+        /// <param name="port">Port to connect to, default 5222</param>
+        /// <returns>HarmonyClient</returns>
+        public static async Task<HarmonyClient> Create(string host, string username, string password, int port = 5222)
+        {
+            string userAuthToken = GetUserAuthToken(username, password);
+            if (string.IsNullOrEmpty(userAuthToken))
+            {
+                throw new Exception("Could not get token from Logitech server.");
+            }
+
+            string sessionToken;
+
+            using (var client = new HarmonyClient(host, "guest", port))
+            {
+                sessionToken = await client.SwapAuthToken(userAuthToken).ConfigureAwait(false);
+            }
+
+            if (string.IsNullOrEmpty(sessionToken))
+            {
+                throw new Exception("Could not swap token on Harmony Hub.");
+            }
+
+            return new HarmonyClient(host, sessionToken, port);
+        }
+
+        /// <summary>
+        /// Logs in to the Logitech Harmony web service to get a UserAuthToken.
+        /// </summary>
+        /// <param name="username">myharmony.com username</param>
+        /// <param name="password">myharmony.com password</param>
+        /// <returns>Logitech UserAuthToken</returns>
+        private static string GetUserAuthToken(string username, string password)
+        {
+            const string logitechAuthUrl = "https://svcs.myharmony.com/CompositeSecurityServices/Security.svc/json/GetUserAuthToken";
+
+            var httpWebRequest = (HttpWebRequest)WebRequest.Create(logitechAuthUrl);
+            httpWebRequest.ContentType = "text/json";
+            httpWebRequest.Method = "POST";
+
+            using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
+            {
+                var json = new JavaScriptSerializer().Serialize(new
+                {
+                    email = username,
+                    password
+                });
+
+                streamWriter.Write(json);
+                streamWriter.Flush();
+            }
+
+            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+
+            var responseStream = httpResponse.GetResponseStream();
+            if (responseStream == null)
+            {
+                return null;
+            }
+
+            string result;
+            using (var streamReader = new StreamReader(responseStream))
+            {
+                result = streamReader.ReadToEnd();
+            }
+            var harmonyData = new JavaScriptSerializer().Deserialize<GetUserAuthTokenResultRootObject>(result);
+            return harmonyData.GetUserAuthTokenResult.UserAuthToken;
+        }
+
+        /// <summary>
+        /// Read the token used for the connection, maybe to store it and use it another time.
+        /// </summary>
+        public string Token
+        {
+            get; private set; }
+
+        /// <summary>
         /// Constructor with standard settings for a new HarmonyClient
         /// </summary>
-        /// <param name="ipAddress"></param>
-        /// <param name="port"></param>
-        /// <param name="token"></param>
-        public HarmonyClient(string ipAddress, int port, string token)
+        /// <param name="host">IP or hostname</param>
+        /// <param name="token">Auth-token, or guest</param>
+        /// <param name="port">The port to connect to, default 5222</param>
+        private HarmonyClient(string host, string token, int port = 5222)
         {
-            _xmpp = new XmppClientConnection(ipAddress, port)
+            Token = token;
+            _xmpp = new XmppClientConnection(host, port)
             {
                 UseStartTLS = false,
                 UseSSL = false,
