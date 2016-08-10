@@ -48,13 +48,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GetUserAuthTokenResult.cs" />
-    <Compile Include="HarmonyAuthenticationClient.cs" />
+    <Compile Include="Entities\Activity.cs" />
+    <Compile Include="Entities\Content.cs" />
+    <Compile Include="Entities\Device.cs" />
+    <Compile Include="Entities\FixItCommand.cs" />
+    <Compile Include="Entities\GetUserAuthTokenResult.cs" />
+    <Compile Include="Entities\GetUserAuthTokenResultRootObject.cs" />
+    <Compile Include="Entities\Global.cs" />
+    <Compile Include="Entities\HarmonyAction.cs" />
     <Compile Include="HarmonyClient.cs" />
-    <Compile Include="HarmonyClientConnection.cs" />
-    <Compile Include="HarmonyConfigResult.cs" />
+    <Compile Include="Entities\Config.cs" />
     <Compile Include="HarmonyDocuments.cs" />
-    <Compile Include="HarmonyLogin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -1,5 +1,6 @@
 ﻿using System.Web.Script.Serialization;
 using agsXMPP.Xml.Dom;
+using HarmonyHub.Entities;
 
 namespace HarmonyHub
 {
@@ -7,13 +8,6 @@ namespace HarmonyHub
     {
         private const string Namespace = "connect.logitech.com";
 
-        public class HarmonyDocument : Document
-        {
-            public HarmonyDocument()
-            {
-                Namespace = Namespace;
-            }
-        }
 
         private static Element CreateOaElement(string command)
         {
@@ -23,9 +17,12 @@ namespace HarmonyHub
             return element;
         }
 
-        public static HarmonyDocument StartActivityDocument(string activityId)
+        public static Document StartActivityDocument(string activityId)
         {
-            var document = new HarmonyDocument();
+            var document = new Document
+            {
+                Namespace = Namespace
+            };
 
             var element = CreateOaElement("startactivity");
             element.Value = $"activityId={activityId}:timestamp=0";
@@ -33,18 +30,29 @@ namespace HarmonyHub
             return document;
         }
 
-        public static HarmonyDocument GetCurrentActivityDocument()
+        public static Document GetCurrentActivityDocument()
         {
-            var document = new HarmonyDocument();
+            var document = new Document
+            {
+                Namespace = Namespace
+            };
             document.AddChild(CreateOaElement("getCurrentActivity"));
             return document;
         }
 
-        public static HarmonyDocument IrCommandDocument(string deviceId, string command)
+        public static Document IrCommandDocument(string deviceId, string command)
         {
-            var document = new HarmonyDocument();
+            var document = new Document
+            {
+                Namespace = Namespace
+            };
 
-            var action = new HarmonyAction {type = "IRCommand", deviceId = deviceId, command = command};
+            var action = new HarmonyAction
+            {
+                Type = "IRCommand",
+                DeviceId = deviceId,
+                Command = command
+            };
             var json = new JavaScriptSerializer().Serialize(action);
 
             // At this point our valid json won't work - we need to break it so it looks like:
@@ -52,6 +60,7 @@ namespace HarmonyHub
             // note double colons 
 
             json = json.Replace(":", "::");
+
             var element = CreateOaElement("holdAction");
 
             element.Value = $"action={json}:status=press";
@@ -61,16 +70,22 @@ namespace HarmonyHub
             return document;
         }
 
-        public static HarmonyDocument ConfigDocument()
+        public static Document ConfigDocument()
         {
-            var document = new HarmonyDocument();
+            var document = new Document
+            {
+                Namespace = Namespace
+            };
             document.AddChild(CreateOaElement("config"));
             return document;
         }
 
-        public static HarmonyDocument LogitechPairDocument(string token)
+        public static Document LogitechPairDocument(string token)
         {
-            var document = new HarmonyDocument();
+            var document = new Document
+            {
+                Namespace = Namespace
+            };
 
             var element = new Element("oa");
             element.Attributes.Add("xmlns", "connect.logitech.com");

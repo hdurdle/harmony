@@ -3,7 +3,7 @@ using CommandLine.Text;
 
 namespace HarmonyConsole
 {
-    class Options
+    internal class Options
     {
         [Option('i', "ip", Required = true, HelpText = "IP Address of Harmony Hub.")]
         public string IpAddress { get; set; }
