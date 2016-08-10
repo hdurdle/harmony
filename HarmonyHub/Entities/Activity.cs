@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 
+
 namespace HarmonyHub.Entities
 {
     /// <summary>
     /// HarmonyHub Activity
-    /// </summary>
+    /// </summary>    
     [DataContract]
     public class Activity : IComparable<Activity>
     {
@@ -19,7 +20,7 @@ namespace HarmonyHub.Entities
         [DataMember(Name = "activityTypeDisplayName")]
         public string ActivityTypeDisplayName { get; set; }
         [DataMember(Name = "controlGroup")]
-        public IList<object> ControlGroup { get; set; }
+        public IList<object> ControlGroups { get; set; }
         [DataMember(Name = "sequences")]
         public IList<object> Sequences { get; set; }
         [DataMember(Name = "activityOrder")]
