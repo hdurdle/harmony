@@ -12,7 +12,7 @@ namespace HarmonyHub.Entities
     {
         [DataMember(Name = "Transport")]
         public int Transport { get; set; }
-        [DataMember(Name = "deviceTypeDisplayName")]
+        [DataMember(Name = "suggestedDisplay")]
         public string SuggestedDisplay { get; set; }
         [DataMember(Name = "deviceTypeDisplayName")]
         public string DeviceTypeDisplayName { get; set; }
@@ -27,7 +27,7 @@ namespace HarmonyHub.Entities
         [DataMember(Name = "DongleRFID")]
         public int DongleRfid { get; set; }
         [DataMember(Name = "controlGroup")]
-        public IList<object> ControlGroup { get; set; }
+        public IList<ControlGroup> ControlGroups { get; set; }
         [DataMember(Name = "ControlPort")]
         public int ControlPort { get; set; }
         [DataMember(Name = "IsKeyboardAssociated")]
@@ -46,6 +46,11 @@ namespace HarmonyHub.Entities
         public int CompareTo(Device other)
         {
             return string.Compare(Label, other?.Label, StringComparison.CurrentCultureIgnoreCase);
+        }
+
+        public override string ToString()
+        {
+            return $"{Label} : {Type} ({Id})";
         }
     }
 }

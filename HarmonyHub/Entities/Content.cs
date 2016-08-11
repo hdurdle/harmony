@@ -1,5 +1,6 @@
 using System.Runtime.Serialization;
 
+
 namespace HarmonyHub.Entities
 {
     [DataContract]

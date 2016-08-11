@@ -56,13 +56,13 @@ namespace HarmonyConsole
                 if (null != harmonyConfig && !string.IsNullOrEmpty(deviceId) && string.IsNullOrEmpty(options.Command))
                 {
                     // just list device control options
-                    foreach (var device in harmonyConfig.Device.Where(device => device.Id == deviceId))
+                    foreach (var device in harmonyConfig.Devices.Where(device => device.Id == deviceId))
                     {
-                        foreach (Dictionary<string, object> controlGroup in device.ControlGroup)
+                        foreach (ControlGroup controlGroup in device.ControlGroups)
                         {
-                            foreach (var o in controlGroup.Where(o => o.Key == "name"))
+                            foreach (Function f in controlGroup.Functions)
                             {
-                                Console.WriteLine($"{o.Key}:{o.Value}");
+                                Console.WriteLine(f.ToString());
                             }
                         }
                     }
@@ -91,7 +91,7 @@ namespace HarmonyConsole
                     if (options.ListType.Equals("a"))
                     {
                         Console.WriteLine("Activities:");
-                        foreach (var activity in harmonyConfig.Activity.OrderBy(x => x.ActivityOrder))
+                        foreach (var activity in harmonyConfig.Activities.OrderBy(x => x.ActivityOrder))
                         {
                             Console.WriteLine(" {0}:{1}", activity.Id, activity.Label);
                         }
@@ -100,9 +100,9 @@ namespace HarmonyConsole
                     if (options.ListType.Equals("d"))
                     {
                         Console.WriteLine("Devices:");
-                        foreach (var device in harmonyConfig.Device.OrderBy(x => x.Label))
+                        foreach (var device in harmonyConfig.Devices.OrderBy(x => x.Label))
                         {
-                            Console.WriteLine($" {device.Id}:{device.Label}");
+                            Console.WriteLine(device.ToString());
                         }
                     }
                 }

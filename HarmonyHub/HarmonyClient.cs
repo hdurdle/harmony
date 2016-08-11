@@ -11,6 +11,9 @@ using agsXMPP.protocol.client;
 using agsXMPP.Sasl;
 using agsXMPP.Xml.Dom;
 using HarmonyHub.Entities;
+using System.Runtime.Serialization.Json;
+using System.Text;
+using HarmonyHub.Utils;
 
 namespace HarmonyHub
 {
@@ -294,7 +297,8 @@ namespace HarmonyHub
             var config = GetData(iq);
             if (config != null)
             {
-                return new JavaScriptSerializer().Deserialize<Config>(config);
+                Serializer<Config> ser = new Serializer<Config>();
+                return ser.Internalize(config);
             }
             throw new Exception("Wrong data");
         }
