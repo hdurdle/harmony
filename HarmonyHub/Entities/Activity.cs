@@ -20,7 +20,7 @@ namespace HarmonyHub.Entities
         [DataMember(Name = "activityTypeDisplayName")]
         public string ActivityTypeDisplayName { get; set; }
         [DataMember(Name = "controlGroup")]
-        public IList<object> ControlGroups { get; set; }
+        public IList<ControlGroup> ControlGroups { get; set; }
         [DataMember(Name = "sequences")]
         public IList<object> Sequences { get; set; }
         [DataMember(Name = "activityOrder")]

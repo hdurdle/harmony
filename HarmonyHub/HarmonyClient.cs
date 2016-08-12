@@ -11,8 +11,6 @@ using agsXMPP.protocol.client;
 using agsXMPP.Sasl;
 using agsXMPP.Xml.Dom;
 using HarmonyHub.Entities;
-using System.Runtime.Serialization.Json;
-using System.Text;
 using HarmonyHub.Utils;
 
 namespace HarmonyHub
@@ -345,7 +343,6 @@ namespace HarmonyHub
             {
                 throw new Exception(iq.Error.ErrorText);
             }
-            throw new Exception("Wrong data");
         }
 
         /// <summary>
