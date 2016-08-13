@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Tasks;
 using agsXMPP;
 using agsXMPP.protocol.client;
@@ -30,6 +31,11 @@ namespace HarmonyHub
         private readonly IDictionary<string, TaskCompletionSource<IQ>> _resultTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<IQ>>();
         // The connection
         private readonly XmppClientConnection _xmpp;
+
+        /// <summary>
+        /// This event is triggered when the current activity is changed
+        /// </summary>
+        public event EventHandler<string> OnActivityChanged;
 
         /// <summary>
         ///     Constructor with standard settings for a new HarmonyClient
@@ -260,8 +266,25 @@ namespace HarmonyHub
         /// <param name="message"></param>
         private void OnMessage(object sender, Message message)
         {
-            Debug.WriteLine("Message (isn't handled yet):");
-            Debug.WriteLine(message.ToString());
+            if (!message.HasTag("event"))
+            {
+                return;
+            }
+            var eventElement = message.SelectSingleElement("event");
+            var eventData = eventElement.GetData();
+            if (eventData == null)
+            {
+                return;
+            }
+            foreach (var pair in eventData.Split(':'))
+            {
+                if (!pair.StartsWith("activityId"))
+                {
+                    continue;
+                }
+                var activityId = pair.Split('=')[1];
+                OnActivityChanged?.Invoke(this, activityId);
+            }
         }
 
         /// <summary>

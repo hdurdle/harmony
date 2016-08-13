@@ -89,7 +89,7 @@ namespace HarmonyHub.Internals
             json = json.Replace(":", "::");
 
             // Build the action to pass to harmony hub
-            var action = $"action={json}:status={(press ? "press" : "release")}:timestamp={timestamp}";
+            var action = $"status={(press ? "press" : "release")}:action={json}:timestamp={timestamp}";
 
             // Now create and return the document
             return CreateDocument(HarmonyCommands.holdAction, action);
