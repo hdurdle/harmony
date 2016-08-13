@@ -270,6 +270,7 @@ namespace HarmonyHub
             {
                 return;
             }
+            // Check for the activity changed data, see here: https://github.com/swissmanu/harmonyhubjs-client/blob/master/docs/protocol/startActivityFinished.md
             var eventElement = message.SelectSingleElement("event");
             var eventData = eventElement.GetData();
             if (eventData == null)
