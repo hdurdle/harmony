@@ -159,6 +159,7 @@ namespace HarmonyHub
         /// </summary>
         public void Dispose()
         {
+			Debug.WriteLine("Disposing");
             _xmpp.OnIq -= OnIqResponseHandler;
             _xmpp.OnLogin -= OnLoginHandler;
             _xmpp.OnSocketError -= ErrorHandler;
@@ -197,6 +198,7 @@ namespace HarmonyHub
         private void OnIqResponseHandler(object sender, IQ iq)
         {
             Debug.WriteLine("Received event " + iq.Id);
+	        Debug.WriteLine(iq.ToString());
             TaskCompletionSource<IQ> resulTaskCompletionSource;
             if (iq.Id != null && _resultTaskCompletionSources.TryGetValue(iq.Id, out resulTaskCompletionSource))
             {
@@ -251,8 +253,10 @@ namespace HarmonyHub
             var resultTaskCompletionSource = new TaskCompletionSource<IQ>();
             _resultTaskCompletionSources[iqToSend.Id] = resultTaskCompletionSource;
 
-            // Start the sending
-            _xmpp.Send(iqToSend);
+			Debug.WriteLine("Sending:");
+			Debug.WriteLine(iqToSend.ToString());
+			// Start the sending
+			_xmpp.Send(iqToSend);
 
             // Await / block until an reply arrives or the timeout happens
             return await resultTaskCompletionSource.Task.ConfigureAwait(false);
@@ -295,8 +299,7 @@ namespace HarmonyHub
             var config = GetData(iq);
             if (config != null)
             {
-                Serializer<Config> ser = new Serializer<Config>();
-                return ser.Internalize(config);
+                return Serializer.FromJson<Config>(config);
             }
             throw new Exception("Wrong data");
         }

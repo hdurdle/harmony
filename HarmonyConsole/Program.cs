@@ -106,6 +106,8 @@ namespace HarmonyConsole
                     }
                 }
             }
+			Console.WriteLine("Ready");
+			Console.ReadLine();
         }
     }
 }
