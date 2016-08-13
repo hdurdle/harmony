@@ -2,15 +2,11 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Net;
 using System.Threading.Tasks;
-using System.Web.Script.Serialization;
 using agsXMPP;
 using agsXMPP.protocol.client;
 using agsXMPP.Sasl;
 using agsXMPP.Xml.Dom;
-using HarmonyHub.Entities.Auth;
 using HarmonyHub.Entities.Response;
 using HarmonyHub.Internals;
 using HarmonyHub.Utils;
@@ -104,14 +100,14 @@ namespace HarmonyHub
         /// <returns>HarmonyClient</returns>
         public static async Task<HarmonyClient> Create(string host, string username, string password, int port = 5222)
         {
-            string userAuthToken = GetUserAuthToken(username, password);
+            string userAuthToken = await HarmonyAuthentication.GetUserAuthToken(username, password);
             if (string.IsNullOrEmpty(userAuthToken))
             {
                 throw new Exception("Could not get token from Logitech server.");
             }
 
+            // Make a guest connection only to exchange the session token via the user authentication token
             string sessionToken;
-
             using (var client = new HarmonyClient(host, "guest", port))
             {
                 sessionToken = await client.SwapAuthToken(userAuthToken).ConfigureAwait(false);
@@ -122,6 +118,7 @@ namespace HarmonyHub
                 throw new Exception("Could not swap token on Harmony Hub.");
             }
 
+            // Create the client with the session token
             return new HarmonyClient(host, sessionToken, port);
         }
 
@@ -200,48 +197,6 @@ namespace HarmonyHub
             return null;
         }
 
-        /// <summary>
-        ///     Logs in to the Logitech Harmony web service to get a UserAuthToken.
-        /// </summary>
-        /// <param name="username">myharmony.com username</param>
-        /// <param name="password">myharmony.com password</param>
-        /// <returns>Logitech UserAuthToken</returns>
-        private static string GetUserAuthToken(string username, string password)
-        {
-            const string logitechAuthUrl = "https://svcs.myharmony.com/CompositeSecurityServices/Security.svc/json/GetUserAuthToken";
-
-            var httpWebRequest = (HttpWebRequest) WebRequest.Create(logitechAuthUrl);
-            httpWebRequest.ContentType = "text/json";
-            httpWebRequest.Method = "POST";
-
-            using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
-            {
-                var json = new JavaScriptSerializer().Serialize(new
-                {
-                    email = username,
-                    password
-                });
-
-                streamWriter.Write(json);
-                streamWriter.Flush();
-            }
-
-            var httpResponse = (HttpWebResponse) httpWebRequest.GetResponse();
-
-            var responseStream = httpResponse.GetResponseStream();
-            if (responseStream == null)
-            {
-                return null;
-            }
-
-            string result;
-            using (var streamReader = new StreamReader(responseStream))
-            {
-                result = streamReader.ReadToEnd();
-            }
-            var harmonyData = new JavaScriptSerializer().Deserialize<GetUserAuthTokenResultRootObject>(result);
-            return harmonyData.GetUserAuthTokenResult.UserAuthToken;
-        }
 
         /// <summary>
         ///     Send a document, await the response and return it

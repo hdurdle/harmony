@@ -1,5 +1,4 @@
 ﻿using agsXMPP.Xml.Dom;
-using HarmonyHub.Entities;
 using HarmonyHub.Entities.Request;
 using HarmonyHub.Utils;
 
