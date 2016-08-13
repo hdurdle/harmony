@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
 using HarmonyHub;
-using HarmonyHub.Entities;
+using HarmonyHub.Entities.Response;
 
 namespace HarmonyConsole
 {
@@ -49,7 +49,7 @@ namespace HarmonyConsole
 
                 if (!string.IsNullOrEmpty(deviceId) && !string.IsNullOrEmpty(options.Command))
                 {
-                    await client.PressButtonAsync(deviceId, options.Command);
+                    await client.SendKeyPressAsync(deviceId, options.Command);
                 }
 
                 if (null != harmonyConfig && !string.IsNullOrEmpty(deviceId) && string.IsNullOrEmpty(options.Command))
@@ -105,6 +105,8 @@ namespace HarmonyConsole
                         }
                     }
                 }
+                Console.WriteLine("Press enter to disconnect");
+                Console.ReadLine();
             }
         }
     }
