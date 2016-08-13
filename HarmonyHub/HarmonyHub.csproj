@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>HarmonyHub</RootNamespace>
     <AssemblyName>HarmonyHub</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -48,25 +48,27 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Entities\Activity.cs" />
-    <Compile Include="Entities\Content.cs" />
-    <Compile Include="Entities\ControlGroup.cs" />
-    <Compile Include="Entities\Device.cs" />
-    <Compile Include="Entities\FixItCommand.cs" />
-    <Compile Include="Entities\Function.cs" />
-    <Compile Include="Entities\GetUserAuthTokenResult.cs" />
-    <Compile Include="Entities\GetUserAuthTokenResultRootObject.cs" />
-    <Compile Include="Entities\Global.cs" />
-    <Compile Include="Entities\HarmonyAction.cs" />
+    <Compile Include="Entities\Response\Activity.cs" />
+    <Compile Include="Entities\Response\Content.cs" />
+    <Compile Include="Entities\Response\ControlGroup.cs" />
+    <Compile Include="Entities\Response\Device.cs" />
+    <Compile Include="Entities\Response\FixItCommand.cs" />
+    <Compile Include="Entities\Response\Function.cs" />
+    <Compile Include="Entities\Auth\GetUserAuthTokenResult.cs" />
+    <Compile Include="Entities\Auth\GetUserAuthTokenResultRootObject.cs" />
+    <Compile Include="Entities\Response\Global.cs" />
+    <Compile Include="Entities\Request\HarmonyAction.cs" />
     <Compile Include="HarmonyClient.cs" />
-    <Compile Include="Entities\Config.cs" />
-    <Compile Include="HarmonyDocuments.cs" />
+    <Compile Include="Entities\Response\Config.cs" />
+    <Compile Include="Internals\HarmonyCommands.cs" />
+    <Compile Include="Internals\HarmonyDocuments.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\Serializer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

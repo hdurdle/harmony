@@ -1,7 +1,6 @@
 using System.Runtime.Serialization;
 
-
-namespace HarmonyHub.Entities
+namespace HarmonyHub.Entities.Auth
 {
     [DataContract]
     public class GetUserAuthTokenResultRootObject
