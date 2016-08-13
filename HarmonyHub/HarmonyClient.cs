@@ -149,6 +149,7 @@ namespace HarmonyHub
             _xmpp.OnSaslStart += SaslStartHandler;
             _xmpp.OnLogin += OnLoginHandler;
             _xmpp.OnIq += OnIqResponseHandler;
+	        _xmpp.OnMessage += OnMessage;
             _xmpp.OnSocketError += ErrorHandler;
             // Open the connection, do the login
             _xmpp.Open($"{token}@x.com", token);
@@ -161,13 +162,25 @@ namespace HarmonyHub
         {
 			Debug.WriteLine("Disposing");
             _xmpp.OnIq -= OnIqResponseHandler;
-            _xmpp.OnLogin -= OnLoginHandler;
+			_xmpp.OnMessage -= OnMessage;
+			_xmpp.OnLogin -= OnLoginHandler;
             _xmpp.OnSocketError -= ErrorHandler;
             _xmpp.OnSaslStart -= SaslStartHandler;
             _xmpp.Close();
         }
 
         #region Event Handlers
+
+		/// <summary>
+		/// Handle incomming messages
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="message"></param>
+	    private void OnMessage(object sender, Message message)
+	    {
+			Debug.WriteLine("Message (isn't handled yet):");
+		    Debug.WriteLine(message.ToString());
+	    }
 
         /// <summary>
         /// Configure Sasl not to use auto and PLAIN for authentication
@@ -178,7 +191,6 @@ namespace HarmonyHub
         {
             saslEventArgs.Auto = false;
             saslEventArgs.Mechanism = "PLAIN";
-
         }
 
         /// <summary>
@@ -203,11 +215,44 @@ namespace HarmonyHub
             if (iq.Id != null && _resultTaskCompletionSources.TryGetValue(iq.Id, out resulTaskCompletionSource))
             {
                 _resultTaskCompletionSources.Remove(iq.Id);
-                resulTaskCompletionSource.TrySetResult(iq);
-            }
+
+				// Error handling from XMPP
+	            if (iq.Error != null)
+	            {
+		            var errorMessage = iq.Error.ErrorText;
+		            Debug.WriteLine(errorMessage);
+		            resulTaskCompletionSource.TrySetException(new Exception(errorMessage));
+		            return;
+	            }
+
+				// Message processing (error handling)
+	            if (iq.HasTag("oa"))
+	            {
+		            var oaElement = iq.SelectSingleElement("oa");
+
+		            // Check error code
+		            var errorCode = oaElement.GetAttribute("errorcode");
+		            if ("200".Equals(errorCode))
+		            {
+			            resulTaskCompletionSource.TrySetResult(iq);
+		            }
+		            else
+		            {
+						// We didn't get a 200, this must mean there was an error
+			            var errorMessage = oaElement.GetAttribute("errorstring");
+			            Debug.WriteLine(errorMessage);
+						// Set the exception on the TaskCompletionSource, it will be picked up in the await
+			            resulTaskCompletionSource.TrySetException(new Exception(errorMessage));
+		            }
+	            }
+	            else
+	            {
+					Debug.WriteLine("Unexpected content");
+				}
+			}
             else
             {
-                Debug.WriteLine("No result task found.");
+                Debug.WriteLine("No matching result task found.");
             }
         }
 
@@ -218,36 +263,56 @@ namespace HarmonyHub
         /// <param name="ex">Exception</param>
         private void ErrorHandler(object sender, Exception ex)
         {
-            _loginTaskCompletionSource.TrySetException(ex);
-        }
+	        if (_loginTaskCompletionSource.Task.Status == TaskStatus.Created)
+	        {
+		        _loginTaskCompletionSource.TrySetException(ex);
+	        }
+	        else
+	        {
+		        Debug.WriteLine(ex.ToString());
+	        }
+		}
 
         #endregion
 
-        /// <summary>
-        /// Send a document, await the response and return it
-        /// </summary>
-        /// <param name="document">Document</param>
-        /// <returns>IQ response</returns>
-        private async Task<IQ> RequestResponseAsync(Document document)
+		/// <summary>
+		/// Generate an IQ for the supplied Document
+		/// </summary>
+		/// <param name="document">Document</param>
+		/// <returns>IQ</returns>
+	    private static IQ GenerateIq(Document document)
+		{
+
+			// Create the IQ to send
+			var iqToSend = new IQ
+			{
+				Type = IqType.get,
+				Namespace = "",
+				From = "1",
+				To = "guest"
+			};
+
+			// Add the real content for the Harmony
+			iqToSend.AddChild(document);
+
+			// Generate an unique ID, this is used to correlate the reply to the request
+			iqToSend.GenerateId();
+		    return iqToSend;
+		}
+
+		/// <summary>
+		/// Send a document, await the response and return it
+		/// </summary>
+		/// <param name="document">Document</param>
+		/// <returns>IQ response</returns>
+		private async Task<IQ> RequestResponseAsync(Document document)
         {
             // Check if the login was made, this blocks until there is a state
             // And throws an exception if the login failed.
             await _loginTaskCompletionSource.Task.ConfigureAwait(false);
 
             // Create the IQ to send
-            var iqToSend = new IQ
-            {
-                Type = IqType.get,
-                Namespace = "",
-                From = "1",
-                To = "guest"
-            };
-
-            // Add the real content for the Harmony
-            iqToSend.AddChild(document);
-
-            // Generate an unique ID, this is used to correlate the reply to the request
-            iqToSend.GenerateId();
+			var iqToSend = GenerateIq(document);
 
             // Prepate the TaskCompletionSource, which is used to await the result
             var resultTaskCompletionSource = new TaskCompletionSource<IQ>();
@@ -262,13 +327,43 @@ namespace HarmonyHub
             return await resultTaskCompletionSource.Task.ConfigureAwait(false);
         }
 
-        #region Authentication
-        /// <summary>
-        /// Send message to HarmonyHub with UserAuthToken, wait for SessionToken
-        /// </summary>
-        /// <param name="userAuthToken"></param>
-        /// <returns></returns>
-        public async Task<string> SwapAuthToken(string userAuthToken)
+	    /// <summary>
+	    /// Send a document, ignore the response (but wait shortly for a possible error)
+	    /// </summary>
+	    /// <param name="document">Document</param>
+	    /// <param name="waitTimeout">the time to wait for a possible error, if this is too small errors are ignored.</param>
+	    /// <returns>Task to await on</returns>
+	    private async Task FireAndForgetAsync(Document document, int waitTimeout = 50)
+		{
+			// Check if the login was made, this blocks until there is a state
+			// And throws an exception if the login failed.
+			await _loginTaskCompletionSource.Task.ConfigureAwait(false);
+
+			// Create the IQ to send
+			var iqToSend = GenerateIq(document);
+
+			// Prepate the TaskCompletionSource, which is used to await the result
+			var resultTaskCompletionSource = new TaskCompletionSource<IQ>();
+			_resultTaskCompletionSources[iqToSend.Id] = resultTaskCompletionSource;
+
+			Debug.WriteLine("Sending (ignoring response):");
+			Debug.WriteLine(iqToSend.ToString());
+			// Start the sending
+			_xmpp.Send(iqToSend);
+
+			// Await, to make sure there wasn't an error
+		    var task = await Task.WhenAny(resultTaskCompletionSource.Task, Task.Delay(waitTimeout)).ConfigureAwait(false);
+			// Make sure the exception, if any, is unwrapped
+		    await task;
+		}
+
+		#region Authentication
+		/// <summary>
+		/// Send message to HarmonyHub with UserAuthToken, wait for SessionToken
+		/// </summary>
+		/// <param name="userAuthToken"></param>
+		/// <returns></returns>
+		public async Task<string> SwapAuthToken(string userAuthToken)
         {
             var iq = await RequestResponseAsync(HarmonyDocuments.LogitechPairDocument(userAuthToken)).ConfigureAwait(false);
             var sessionData = GetData(iq);
@@ -301,27 +396,24 @@ namespace HarmonyHub
             {
                 return Serializer.FromJson<Config>(config);
             }
-            throw new Exception("Wrong data");
+            throw new Exception("No data found");
         }
 
-        /// <summary>
-        /// Send message to HarmonyHub to start a given activity
-        /// Result is parsed by OnIq based on ClientCommandType
-        /// </summary>
-        /// <param name="activityId"></param>
-        public async Task StartActivityAsync(string activityId)
+		/// <summary>
+		/// Send message to HarmonyHub to start a given activity
+		/// Result is parsed by OnIq based on ClientCommandType
+		/// </summary>
+		/// <param name="activityId">string</param>
+		public async Task StartActivityAsync(string activityId)
         {
-            var iq = await RequestResponseAsync(HarmonyDocuments.StartActivityDocument(activityId)).ConfigureAwait(false);
-            if (iq.Error != null)
-            {
-                throw new Exception(iq.Error.ErrorText);
-            }
+            await RequestResponseAsync(HarmonyDocuments.StartActivityDocument(activityId)).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Send message to HarmonyHub to request current activity
         /// Result is parsed by OnIq based on ClientCommandType
         /// </summary>
+        /// <returns>string with the current activity</returns>
         public async Task<string> GetCurrentActivityAsync()
         {
             var iq = await RequestResponseAsync(HarmonyDocuments.GetCurrentActivityDocument()).ConfigureAwait(false);
@@ -330,28 +422,42 @@ namespace HarmonyHub
             {
                 return currentActivityData.Split('=')[1];
             }
-            throw new Exception("Wrong data");
+            throw new Exception("No data found in IQ");
         }
 
-        /// <summary>
-        /// Send message to HarmonyHub to request to press a button
-        /// Result is parsed by OnIq based on ClientCommandType
-        /// </summary>
-        /// <param name="deviceId"></param>
-        /// <param name="command"></param>
-        public async Task PressButtonAsync(string deviceId, string command)
-        {
-            var iq = await RequestResponseAsync(HarmonyDocuments.IrCommandDocument(deviceId, command)).ConfigureAwait(false);
-            if (iq.Error != null)
-            {
-                throw new Exception(iq.Error.ErrorText);
-            }
+	    /// <summary>
+	    /// Send message to HarmonyHub to request to press a button
+	    /// Result is parsed by OnIq based on ClientCommandType
+	    /// </summary>
+	    /// <param name="deviceId">string with the ID of the device</param>
+	    /// <param name="command">string with the command for the device</param>
+	    /// <param name="press">true for press, false for release</param>
+	    /// <param name="timestamp">Timestamp for the command, e.g. send a press with 0 and a release with 100</param>
+	    public async Task SendCommandAsync(string deviceId, string command, bool press = true, int timestamp = 0)
+	    {
+		    var document = HarmonyDocuments.IrCommandDocument(deviceId, command, press, timestamp);
+			await FireAndForgetAsync(document).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Send message to HarmonyHub to request to turn off all devices
-        /// </summary>
-        public async Task TurnOffAsync()
+	    /// <summary>
+	    /// Send a message that a button was pressed
+	    /// Result is parsed by OnIq based on ClientCommandType
+	    /// </summary>
+	    /// <param name="deviceId">string with the ID of the device</param>
+	    /// <param name="command">string with the command for the device</param>
+	    /// <param name="timespan">The time between the press and release, default 100ms</param>
+	    public async Task SendKeyPressAsync(string deviceId, string command, int timespan = 100)
+		{
+			var press = HarmonyDocuments.IrCommandDocument(deviceId, command);
+			var release = HarmonyDocuments.IrCommandDocument(deviceId, command, false, timespan);
+			await FireAndForgetAsync(press).ConfigureAwait(false);
+			await FireAndForgetAsync(release).ConfigureAwait(false);
+		}
+
+		/// <summary>
+		/// Send message to HarmonyHub to request to turn off all devices
+		/// </summary>
+		public async Task TurnOffAsync()
         {
             var currentActivity = await GetCurrentActivityAsync().ConfigureAwait(false);
             if (currentActivity != "-1")

@@ -1,15 +1,21 @@
-﻿using System.Web.Script.Serialization;
-using agsXMPP.Xml.Dom;
+﻿using agsXMPP.Xml.Dom;
 using HarmonyHub.Entities;
 using HarmonyHub.Utils;
 
 namespace HarmonyHub
 {
+	/// <summary>
+	/// Internally used to create different documents to send to the harmony hub.
+	/// </summary>
     internal class HarmonyDocuments
     {
         private const string Namespace = "connect.logitech.com";
 
-
+		/// <summary>
+		/// Create the base oa element for harmony documents
+		/// </summary>
+		/// <param name="command">Command to call</param>
+		/// <returns>Element</returns>
         private static Element CreateOaElement(string command)
         {
             var element = new Element("oa");
@@ -18,6 +24,11 @@ namespace HarmonyHub
             return element;
         }
 
+		/// <summary>
+		/// Create a document to start an activity
+		/// </summary>
+		/// <param name="activityId">Id for the activity</param>
+		/// <returns>Document</returns>
         public static Document StartActivityDocument(string activityId)
         {
             var document = new Document
@@ -31,6 +42,10 @@ namespace HarmonyHub
             return document;
         }
 
+		/// <summary>
+		/// Create a document to request the current activity to the harmony hub
+		/// </summary>
+		/// <returns>Document</returns>
         public static Document GetCurrentActivityDocument()
         {
             var document = new Document
@@ -41,7 +56,15 @@ namespace HarmonyHub
             return document;
         }
 
-        public static Document IrCommandDocument(string deviceId, string command)
+	    /// <summary>
+	    /// Create a document 
+	    /// </summary>
+	    /// <param name="deviceId"></param>
+	    /// <param name="command"></param>
+	    /// <param name="press">true for press, false for release</param>
+	    /// <param name="timestamp"></param>
+	    /// <returns>Document for the command to send to the harmony hub.</returns>
+	    public static Document IrCommandDocument(string deviceId, string command, bool press = true, int timestamp = 0)
         {
             var document = new Document
             {
@@ -54,7 +77,7 @@ namespace HarmonyHub
                 DeviceId = deviceId,
                 Command = command
             };
-			var json = Serializer.ToJson<HarmonyAction>(action);
+			var json = Serializer.ToJson(action);
 
             // At this point our valid json won't work - we need to break it so it looks like:
             // {"type"::"IRCommand","deviceId"::"deviceId","command"::"command"}
@@ -64,13 +87,17 @@ namespace HarmonyHub
 
             var element = CreateOaElement("holdAction");
 
-            element.Value = $"action={json}:status=press";
+            element.Value = $"action={json}:status={(press ? "press" : "release")}:timestamp={timestamp}";
 
             document.AddChild(element);
 
             return document;
         }
 
+		/// <summary>
+		/// Create a document to request the current configuration
+		/// </summary>
+		/// <returns>Document</returns>
         public static Document ConfigDocument()
         {
             var document = new Document
@@ -81,6 +108,11 @@ namespace HarmonyHub
             return document;
         }
 
+		/// <summary>
+		/// Create a "pair" document
+		/// </summary>
+		/// <param name="token">Token</param>
+		/// <returns>Document</returns>
         public static Document LogitechPairDocument(string token)
         {
             var document = new Document

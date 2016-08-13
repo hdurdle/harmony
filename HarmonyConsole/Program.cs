@@ -49,10 +49,10 @@ namespace HarmonyConsole
 
                 if (!string.IsNullOrEmpty(deviceId) && !string.IsNullOrEmpty(options.Command))
                 {
-                    await client.PressButtonAsync(deviceId, options.Command);
-                }
+                    await client.SendKeyPressAsync(deviceId, options.Command);
+				}
 
-                if (null != harmonyConfig && !string.IsNullOrEmpty(deviceId) && string.IsNullOrEmpty(options.Command))
+				if (null != harmonyConfig && !string.IsNullOrEmpty(deviceId) && string.IsNullOrEmpty(options.Command))
                 {
                     // just list device control options
                     foreach (var device in harmonyConfig.Devices.Where(device => device.Id == deviceId))
@@ -105,9 +105,9 @@ namespace HarmonyConsole
                         }
                     }
                 }
-            }
-			Console.WriteLine("Ready");
-			Console.ReadLine();
-        }
+				Console.WriteLine("Press enter to disconnect");
+				Console.ReadLine();
+			}
+		}
     }
 }
