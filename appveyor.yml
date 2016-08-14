@@ -1,0 +1,42 @@
+version: 0.1.{build}
+skip_tags: true
+configuration: Release
+platform: Any CPU
+clone_depth: 2
+branches:
+  only:
+  - master
+assembly_info:
+  patch: true
+  file: '**\AssemblyInfo.*'
+  assembly_version: '{version}'
+  assembly_file_version: '{version}'
+  assembly_informational_version: '{version}'
+install:
+  - choco install gitlink -y
+before_build:
+  - nuget restore
+before_package:
+  - GitLink .\
+build:
+  project: Harmony.sln
+  publish_nuget: true
+  publish_nuget_symbols: false
+  verbosity: minimal
+artifacts:
+- path: '*.nupkg'
+  name: NuGet package
+notifications:
+- provider: Email
+  to:
+  - robin@dapplo.net
+  on_build_success: true
+  on_build_failure: true
+  on_build_status_changed: false
+deploy:
+- provider: GitHub
+  release: Harmony-v$(appveyor_build_version)
+  auth_token:
+    secure: eBQPtXg53XgcvdcVY3wQAw6kkwNh+QhcsTDwzyQLLh6IOPyiePEaEhJR0D2YBjAj
+  artifact: /.*\.nupkg/
+  draft: false

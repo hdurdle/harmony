@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <id>$id$</id>
+        <version>$version$</version>
+        <authors>$author$</authors>
+        <licenseUrl>http://www.gnu.org/licenses/lgpl-3.0.html</licenseUrl>
+        <projectUrl>https://github.com/hdurdle/harmony</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>$description$</description>
+		<summary>A library to access a HamonyHub from .NET</summary>
+        <language>en-us</language>
+		<copyright>$author$</copyright>
+		<tags>harmony harmonyhub</tags>
+    </metadata>
+	<files>
+		<file src="bin\release\$id$.pdb" target="lib\net451" />
+		<file src="bin\release\$id$.xml" target="lib\net451" />
+		<file src="bin\release\$id$.dll" target="lib\net451" />
+	</files>
+</package>

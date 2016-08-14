@@ -2,9 +2,9 @@
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("HarmonyHub")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("A .NET library to connect to a harmony hub")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Howard Durdle")]
 [assembly: AssemblyProduct("HarmonyHub")]
 [assembly: AssemblyCopyright("Copyright Howard Durdle 2014")]
 [assembly: AssemblyTrademark("")]
