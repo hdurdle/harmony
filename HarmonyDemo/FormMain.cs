@@ -1,13 +1,7 @@
 ﻿using HarmonyHub;
 using HarmonyHub.Entities.Response;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -22,21 +16,38 @@ namespace HarmonyDemo
 
         private async void FormMain_Load(object sender, EventArgs e)
         {
-            //Connect already if we have an existing session cookie
+            // ConnectAsync already if we have an existing session cookie
             if (File.Exists("SessionToken"))
             {
-                Connect();
+
+                buttonConnect.Enabled = false;
+                try
+                {
+                    await ConnectAsync();
+                }
+                finally
+                {
+                    buttonConnect.Enabled = true;
+                }
             }
 
         }
 
         private async void buttonConnect_Click(object sender, EventArgs e)
         {
-            Connect();
+            buttonConnect.Enabled = false;
+            try
+            {
+                await ConnectAsync();
+            }
+            catch (Exception ex)
+            {
+                buttonConnect.Enabled = true;
+            }
         }
 
 
-        private async void Connect()
+        private async Task ConnectAsync()
         {
             toolStripStatusLabelConnection.Text = "Connecting... ";
             //First create our client and login
@@ -44,7 +55,7 @@ namespace HarmonyDemo
             {
                 var sessionToken = File.ReadAllText("SessionToken");
                 Console.WriteLine("Reusing token: {0}", sessionToken);
-                toolStripStatusLabelConnection.Text += string.Format("Reusing token: {0}", sessionToken);
+                toolStripStatusLabelConnection.Text += $"Reusing token: {sessionToken}";
                 Program.Client = HarmonyClient.Create(textBoxHarmonyHubAddress.Text, sessionToken);
             }
             else
@@ -55,7 +66,7 @@ namespace HarmonyDemo
                     return;
                 }
 
-                toolStripStatusLabelConnection.Text += string.Format("authenticating with Logitech servers...");
+                toolStripStatusLabelConnection.Text += "authenticating with Logitech servers...";
                 Program.Client = await HarmonyClient.Create(textBoxHarmonyHubAddress.Text, textBoxUserName.Text, textBoxPassword.Text);
                 File.WriteAllText("SessionToken", Program.Client.Token);
             }
@@ -63,7 +74,7 @@ namespace HarmonyDemo
             toolStripStatusLabelConnection.Text = "Fetching Harmony Hub configuration...";
 
             //Fetch our config
-            Config harmonyConfig = await Program.Client.GetConfigAsync();
+            var harmonyConfig = await Program.Client.GetConfigAsync();
             PopulateTreeViewConfig(harmonyConfig);
 
             toolStripStatusLabelConnection.Text = "Ready";
@@ -98,19 +109,19 @@ namespace HarmonyDemo
             //treeViewConfig.ExpandAll();
         }
 
-        private void treeViewConfig_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
+        private async void treeViewConfig_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
         {
             //Upon function node double click we execute it
-            if (e.Node.Tag is Function && e.Node.Parent.Parent.Tag is Device)
+            var tag = e.Node.Tag as Function;
+            if (tag != null && e.Node.Parent.Parent.Tag is Device)
             {
-                Function f = (Function)e.Node.Tag;
+                Function f = tag;
                 Device d = (Device)e.Node.Parent.Parent.Tag;
 
                 toolStripStatusLabelConnection.Text = $"Sending {f.Name} to {d.Label}...";
 
-                Program.Client.SendCommandAsync(d.Id,f.Name);
+                await Program.Client.SendCommandAsync(d.Id,f.Name);
             }
         }
-
     }
 }
