@@ -40,7 +40,7 @@ namespace HarmonyDemo
             {
                 await ConnectAsync();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 buttonConnect.Enabled = true;
             }
