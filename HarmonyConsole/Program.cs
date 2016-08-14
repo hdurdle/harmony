@@ -47,6 +47,12 @@ namespace HarmonyConsole
                     harmonyConfig = await client.GetConfigAsync();
                 }
 
+                // Monitor activity changes
+                client.OnActivityChanged += (sender, activity) =>
+                {
+                    Console.WriteLine("The current activity is now: " + (harmonyConfig?.ActivityNameFromId(activity) ?? activity));
+                };
+
                 if (!string.IsNullOrEmpty(deviceId) && !string.IsNullOrEmpty(options.Command))
                 {
                     await client.SendKeyPressAsync(deviceId, options.Command);
@@ -57,11 +63,11 @@ namespace HarmonyConsole
                     // just list device control options
                     foreach (var device in harmonyConfig.Devices.Where(device => device.Id == deviceId))
                     {
-                        foreach (ControlGroup controlGroup in device.ControlGroups)
+                        foreach (var controlGroup in device.ControlGroups)
                         {
-                            foreach (Function f in controlGroup.Functions)
+                            foreach (var function in controlGroup.Functions)
                             {
-                                Console.WriteLine(f.ToString());
+                                Console.WriteLine(function.ToString());
                             }
                         }
                     }
@@ -106,7 +112,7 @@ namespace HarmonyConsole
                     }
                 }
                 Console.WriteLine("Press enter to disconnect");
-                Console.ReadLine();
+                await Task.Run(() => Console.ReadLine()).ConfigureAwait(false);
             }
         }
     }

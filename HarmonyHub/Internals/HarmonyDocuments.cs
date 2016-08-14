@@ -1,4 +1,5 @@
-﻿using agsXMPP.Xml.Dom;
+﻿using System.Text;
+using agsXMPP.Xml.Dom;
 using HarmonyHub.Entities.Request;
 using HarmonyHub.Utils;
 
@@ -70,9 +71,9 @@ namespace HarmonyHub.Internals
         /// <param name="deviceId"></param>
         /// <param name="command"></param>
         /// <param name="press">true for press, false for release</param>
-        /// <param name="timestamp"></param>
+        /// <param name="timestamp">timestamp which harmony uses to order requests</param>
         /// <returns>Document for the command to send to the harmony hub.</returns>
-        public static Document IrCommandDocument(string deviceId, string command, bool press = true, int timestamp = 0)
+        public static Document IrCommandDocument(string deviceId, string command, bool press = true, int? timestamp = null)
         {
             // Create a json representation of a harmony action request
             var json = Serializer.ToJson(new HarmonyAction
@@ -88,11 +89,19 @@ namespace HarmonyHub.Internals
 
             json = json.Replace(":", "::");
 
-            // Build the action to pass to harmony hub
-            var action = $"action={json}:status={(press ? "press" : "release")}:timestamp={timestamp}";
+            // Build the action to pass to harmony 
+            var actionBuilder = new StringBuilder();
+            // TODO: "hold" is also an accepted status, what else and how can we work with them?
+            // See here for more information: https://github.com/jterrace/pyharmony/blob/master/PROTOCOL.md
+            actionBuilder.Append("status=").Append(press ? "press" : "release").Append(':');
+            actionBuilder.Append("action=").Append(json);
+            if (timestamp.HasValue)
+            {
+                actionBuilder.Append(':').Append("timestamp=").Append(timestamp.Value);
+            }
 
             // Now create and return the document
-            return CreateDocument(HarmonyCommands.holdAction, action);
+            return CreateDocument(HarmonyCommands.holdAction, actionBuilder.ToString());
         }
 
         /// <summary>

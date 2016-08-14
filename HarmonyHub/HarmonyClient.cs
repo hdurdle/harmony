@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Tasks;
 using agsXMPP;
 using agsXMPP.protocol.client;
@@ -10,6 +11,7 @@ using agsXMPP.Xml.Dom;
 using HarmonyHub.Entities.Response;
 using HarmonyHub.Internals;
 using HarmonyHub.Utils;
+using System.Threading;
 
 namespace HarmonyHub
 {
@@ -30,6 +32,11 @@ namespace HarmonyHub
         private readonly IDictionary<string, TaskCompletionSource<IQ>> _resultTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<IQ>>();
         // The connection
         private readonly XmppClientConnection _xmpp;
+
+        /// <summary>
+        /// This event is triggered when the current activity is changed
+        /// </summary>
+        public event EventHandler<string> OnActivityChanged;
 
         /// <summary>
         ///     Constructor with standard settings for a new HarmonyClient
@@ -148,8 +155,13 @@ namespace HarmonyHub
 
             // Await, to make sure there wasn't an error
             var task = await Task.WhenAny(resultTaskCompletionSource.Task, Task.Delay(waitTimeout)).ConfigureAwait(false);
-            // Make sure the exception, if any, is unwrapped
+
+            // Remove the result task, as we no longer need it.
+            _resultTaskCompletionSources.Remove(iqToSend.Id);
+
+            // This makes sure the exception, if there was one, is unwrapped
             await task;
+
         }
 
         /// <summary>
@@ -202,8 +214,9 @@ namespace HarmonyHub
         ///     Send a document, await the response and return it
         /// </summary>
         /// <param name="document">Document</param>
+        /// <param name="timeout">Timeout for waiting on the response, if this passes a timeout exception is thrown</param>
         /// <returns>IQ response</returns>
-        private async Task<IQ> RequestResponseAsync(Document document)
+        private async Task<IQ> RequestResponseAsync(Document document, int timeout = 2000)
         {
             // Check if the login was made, this blocks until there is a state
             // And throws an exception if the login failed.
@@ -218,11 +231,27 @@ namespace HarmonyHub
 
             Debug.WriteLine("Sending:");
             Debug.WriteLine(iqToSend.ToString());
+
+            // Create the action which is called when a timeout occurs
+            Action timeoutAction = () =>
+            {
+                // Remove the registration, it is no longer needed
+                _resultTaskCompletionSources.Remove(iqToSend.Id);
+                // Pass the timeout exception to the await
+                resultTaskCompletionSource.TrySetException(new TimeoutException($"Timeout while waiting on response {iqToSend.Id} after {timeout}"));
+
+            };
+
             // Start the sending
             _xmpp.Send(iqToSend);
 
-            // Await / block until an reply arrives or the timeout happens
-            return await resultTaskCompletionSource.Task.ConfigureAwait(false);
+            // Setup the timeout handling
+            var cancellationTokenSource = new CancellationTokenSource(timeout);
+            using (cancellationTokenSource.Token.Register(timeoutAction))
+            {
+                // Await / block until an reply arrives or the timeout happens
+                return await resultTaskCompletionSource.Task.ConfigureAwait(false);
+            }
         }
 
         #region Authentication
@@ -260,8 +289,26 @@ namespace HarmonyHub
         /// <param name="message"></param>
         private void OnMessage(object sender, Message message)
         {
-            Debug.WriteLine("Message (isn't handled yet):");
-            Debug.WriteLine(message.ToString());
+            if (!message.HasTag("event"))
+            {
+                return;
+            }
+            // Check for the activity changed data, see here: https://github.com/swissmanu/harmonyhubjs-client/blob/master/docs/protocol/startActivityFinished.md
+            var eventElement = message.SelectSingleElement("event");
+            var eventData = eventElement.GetData();
+            if (eventData == null)
+            {
+                return;
+            }
+            foreach (var pair in eventData.Split(':'))
+            {
+                if (!pair.StartsWith("activityId"))
+                {
+                    continue;
+                }
+                var activityId = pair.Split('=')[1];
+                OnActivityChanged?.Invoke(this, activityId);
+            }
         }
 
         /// <summary>
@@ -296,14 +343,14 @@ namespace HarmonyHub
             TaskCompletionSource<IQ> resulTaskCompletionSource;
             if (iq.Id != null && _resultTaskCompletionSources.TryGetValue(iq.Id, out resulTaskCompletionSource))
             {
-                _resultTaskCompletionSources.Remove(iq.Id);
-
                 // Error handling from XMPP
                 if (iq.Error != null)
                 {
                     var errorMessage = iq.Error.ErrorText;
                     Debug.WriteLine(errorMessage);
                     resulTaskCompletionSource.TrySetException(new Exception(errorMessage));
+                    // Result task is longer needed in the lookup
+                    _resultTaskCompletionSources.Remove(iq.Id);
                     return;
                 }
 
@@ -314,17 +361,32 @@ namespace HarmonyHub
 
                     // Check error code
                     var errorCode = oaElement.GetAttribute("errorcode");
-                    if ("200".Equals(errorCode))
+                    // 100 -> continue
+                    if ("100".Equals(errorCode))
+                    {
+                        // Ignoring 100 continue
+                        Debug.WriteLine("Ignoring, expecting more to come.");
+
+                        // TODO: Insert code to handle progress updates for the startActivity
+                    }
+                    // 200 -> OK
+                    else if ("200".Equals(errorCode))
                     {
                         resulTaskCompletionSource.TrySetResult(iq);
+
+                        // Result task is longer needed in the lookup
+                        _resultTaskCompletionSources.Remove(iq.Id);
                     }
                     else
                     {
-                        // We didn't get a 200, this must mean there was an error
+                        // We didn't get a 100 or 200, this must mean there was an error
                         var errorMessage = oaElement.GetAttribute("errorstring");
                         Debug.WriteLine(errorMessage);
                         // Set the exception on the TaskCompletionSource, it will be picked up in the await
                         resulTaskCompletionSource.TrySetException(new Exception(errorMessage));
+
+                        // Result task is longer needed in the lookup
+                        _resultTaskCompletionSources.Remove(iq.Id);
                     }
                 }
                 else
@@ -408,7 +470,7 @@ namespace HarmonyHub
         /// <param name="command">string with the command for the device</param>
         /// <param name="press">true for press, false for release</param>
         /// <param name="timestamp">Timestamp for the command, e.g. send a press with 0 and a release with 100</param>
-        public async Task SendCommandAsync(string deviceId, string command, bool press = true, int timestamp = 0)
+        public async Task SendCommandAsync(string deviceId, string command, bool press = true, int? timestamp = null)
         {
             var document = HarmonyDocuments.IrCommandDocument(deviceId, command, press, timestamp);
             await FireAndForgetAsync(document).ConfigureAwait(false);
@@ -423,9 +485,10 @@ namespace HarmonyHub
         /// <param name="timespan">The time between the press and release, default 100ms</param>
         public async Task SendKeyPressAsync(string deviceId, string command, int timespan = 100)
         {
-            var press = HarmonyDocuments.IrCommandDocument(deviceId, command);
-            var release = HarmonyDocuments.IrCommandDocument(deviceId, command, false, timespan);
+            var now = (int)DateTime.Now.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+            var press = HarmonyDocuments.IrCommandDocument(deviceId, command, true, now -timespan);
             await FireAndForgetAsync(press).ConfigureAwait(false);
+            var release = HarmonyDocuments.IrCommandDocument(deviceId, command, false, timespan);
             await FireAndForgetAsync(release).ConfigureAwait(false);
         }
 
