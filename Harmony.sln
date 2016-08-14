@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HarmonyConsole", "HarmonyCo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HarmonyHub", "HarmonyHub\HarmonyHub.csproj", "{561D5F22-2CCF-4D84-A677-EB54CC39AFBF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HarmonyDemo", "HarmonyDemo\HarmonyDemo.csproj", "{88549705-696B-4C0F-9A3A-001FA3334276}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{561D5F22-2CCF-4D84-A677-EB54CC39AFBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{561D5F22-2CCF-4D84-A677-EB54CC39AFBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{561D5F22-2CCF-4D84-A677-EB54CC39AFBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88549705-696B-4C0F-9A3A-001FA3334276}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88549705-696B-4C0F-9A3A-001FA3334276}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88549705-696B-4C0F-9A3A-001FA3334276}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88549705-696B-4C0F-9A3A-001FA3334276}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
