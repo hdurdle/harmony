@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using agsXMPP;
 using agsXMPP.protocol.client;
@@ -11,7 +11,6 @@ using agsXMPP.Xml.Dom;
 using HarmonyHub.Entities.Response;
 using HarmonyHub.Internals;
 using HarmonyHub.Utils;
-using System.Threading;
 
 namespace HarmonyHub
 {
@@ -32,11 +31,6 @@ namespace HarmonyHub
         private readonly IDictionary<string, TaskCompletionSource<IQ>> _resultTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<IQ>>();
         // The connection
         private readonly XmppClientConnection _xmpp;
-
-        /// <summary>
-        /// This event is triggered when the current activity is changed
-        /// </summary>
-        public event EventHandler<string> OnActivityChanged;
 
         /// <summary>
         ///     Constructor with standard settings for a new HarmonyClient
@@ -101,28 +95,20 @@ namespace HarmonyHub
         ///     Create a harmony client via myharmony.com authenification
         /// </summary>
         /// <param name="host">IP or hostname</param>
-        /// <param name="username">myharmony.com username (email)</param>
-        /// <param name="password">myharmony.com password</param>
         /// <param name="port">Port to connect to, default 5222</param>
         /// <returns>HarmonyClient</returns>
-        public static async Task<HarmonyClient> Create(string host, string username, string password, int port = 5222)
+        public static async Task<HarmonyClient> Create(string host, int port = 5222)
         {
-            string userAuthToken = await HarmonyAuthentication.GetUserAuthToken(username, password);
-            if (string.IsNullOrEmpty(userAuthToken))
-            {
-                throw new Exception("Could not get token from Logitech server.");
-            }
-
             // Make a guest connection only to exchange the session token via the user authentication token
             string sessionToken;
             using (var client = new HarmonyClient(host, "guest", port))
             {
-                sessionToken = await client.SwapAuthToken(userAuthToken).ConfigureAwait(false);
+                sessionToken = await client.CreateToken().ConfigureAwait(false);
             }
 
             if (string.IsNullOrEmpty(sessionToken))
             {
-                throw new Exception("Could not swap token on Harmony Hub.");
+                throw new Exception("Could not get token from Harmony Hub.");
             }
 
             // Create the client with the session token
@@ -161,7 +147,6 @@ namespace HarmonyHub
 
             // This makes sure the exception, if there was one, is unwrapped
             await task;
-
         }
 
         /// <summary>
@@ -209,6 +194,11 @@ namespace HarmonyHub
             return null;
         }
 
+        /// <summary>
+        ///     This event is triggered when the current activity is changed
+        /// </summary>
+        public event EventHandler<string> OnActivityChanged;
+
 
         /// <summary>
         ///     Send a document, await the response and return it
@@ -239,7 +229,6 @@ namespace HarmonyHub
                 _resultTaskCompletionSources.Remove(iqToSend.Id);
                 // Pass the timeout exception to the await
                 resultTaskCompletionSource.TrySetException(new TimeoutException($"Timeout while waiting on response {iqToSend.Id} after {timeout}"));
-
             };
 
             // Start the sending
@@ -257,18 +246,15 @@ namespace HarmonyHub
         #region Authentication
 
         /// <summary>
-        ///     Send message to HarmonyHub with UserAuthToken, wait for SessionToken
+        ///     Send message to HarmonyHub, wait for SessionToken
         /// </summary>
-        /// <param name="userAuthToken"></param>
-        /// <returns></returns>
-        public async Task<string> SwapAuthToken(string userAuthToken)
+        /// <returns>session token</returns>
+        public async Task<string> CreateToken()
         {
-            var iq = await RequestResponseAsync(HarmonyDocuments.LogitechPairDocument(userAuthToken)).ConfigureAwait(false);
+            var iq = await RequestResponseAsync(HarmonyDocuments.LogitechPairDocument()).ConfigureAwait(false);
             var sessionData = GetData(iq);
-            if (sessionData != null)
-            {
-                foreach (var pair in sessionData.Split(':'))
-                {
+            if (sessionData != null) {
+                foreach (var pair in sessionData.Split(':')) {
                     if (pair.StartsWith("identity"))
                     {
                         return pair.Split('=')[1];
@@ -341,7 +327,7 @@ namespace HarmonyHub
             Debug.WriteLine("Received event " + iq.Id);
             Debug.WriteLine(iq.ToString());
             TaskCompletionSource<IQ> resulTaskCompletionSource;
-            if (iq.Id != null && _resultTaskCompletionSources.TryGetValue(iq.Id, out resulTaskCompletionSource))
+            if ((iq.Id != null) && _resultTaskCompletionSources.TryGetValue(iq.Id, out resulTaskCompletionSource))
             {
                 // Error handling from XMPP
                 if (iq.Error != null)
@@ -485,8 +471,8 @@ namespace HarmonyHub
         /// <param name="timespan">The time between the press and release, default 100ms</param>
         public async Task SendKeyPressAsync(string deviceId, string command, int timespan = 100)
         {
-            var now = (int)DateTime.Now.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
-            var press = HarmonyDocuments.IrCommandDocument(deviceId, command, true, now -timespan);
+            var now = (int) DateTime.Now.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+            var press = HarmonyDocuments.IrCommandDocument(deviceId, command, true, now - timespan);
             await FireAndForgetAsync(press).ConfigureAwait(false);
             var release = HarmonyDocuments.IrCommandDocument(deviceId, command, false, timespan);
             await FireAndForgetAsync(release).ConfigureAwait(false);
