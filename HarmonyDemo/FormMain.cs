@@ -16,6 +16,8 @@ namespace HarmonyDemo
 
         private async void FormMain_Load(object sender, EventArgs e)
         {
+            textBoxHarmonyHubAddress.Text = Properties.Settings.Default.HarmonyHubAddress;
+        
             // ConnectAsync already if we have an existing session cookie
             if (File.Exists("SessionToken"))
             {
@@ -35,6 +37,9 @@ namespace HarmonyDemo
 
         private async void buttonConnect_Click(object sender, EventArgs e)
         {
+            Properties.Settings.Default.HarmonyHubAddress = textBoxHarmonyHubAddress.Text;
+            Properties.Settings.Default.Save();
+
             buttonConnect.Enabled = false;
             try
             {
@@ -116,6 +121,12 @@ namespace HarmonyDemo
 
                 await Program.Client.SendCommandAsync(d.Id,f.Name);
             }
+        }
+
+        private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Properties.Settings.Default.HarmonyHubAddress = textBoxHarmonyHubAddress.Text;
+            Properties.Settings.Default.Save();
         }
     }
 }
