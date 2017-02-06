@@ -107,9 +107,8 @@ namespace HarmonyHub.Internals
         /// <summary>
         ///     Create a "pair" document, this is a bit different from the others
         /// </summary>
-        /// <param name="token">Token</param>
         /// <returns>Document</returns>
-        public static Document LogitechPairDocument(string token)
+        public static Document LogitechPairDocument()
         {
             var document = new Document
             {
@@ -119,7 +118,7 @@ namespace HarmonyHub.Internals
             var element = new Element("oa");
             element.Attributes.Add("xmlns", "connect.logitech.com");
             element.Attributes.Add("mime", "vnd.logitech.connect/vnd.logitech.pair");
-            element.Value = $"token={token}:name=foo#iOS6.0.1#iPhone";
+            element.Value = "method=pair:name=foo#iOS6.0.1#iPhone";
             document.AddChild(element);
             return document;
         }

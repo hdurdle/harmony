@@ -32,7 +32,7 @@ namespace HarmonyConsole
             }
             else
             {
-                client = await HarmonyClient.Create(options.IpAddress, options.Username, options.Password);
+                client = await HarmonyClient.Create(options.IpAddress);
                 File.WriteAllText("SessionToken", client.Token);
             }
 

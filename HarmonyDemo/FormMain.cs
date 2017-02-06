@@ -65,14 +65,8 @@ namespace HarmonyDemo
             }
             else
             {
-                if (string.IsNullOrEmpty(textBoxPassword.Text))
-                {
-                    toolStripStatusLabelConnection.Text = "Credentials missing!";
-                    return;
-                }
-
                 toolStripStatusLabelConnection.Text += "authenticating with Logitech servers...";
-                Program.Client = await HarmonyClient.Create(textBoxHarmonyHubAddress.Text, textBoxUserName.Text, textBoxPassword.Text);
+                Program.Client = await HarmonyClient.Create(textBoxHarmonyHubAddress.Text);
                 File.WriteAllText("SessionToken", Program.Client.Token);
             }
 
